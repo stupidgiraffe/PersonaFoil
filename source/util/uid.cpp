@@ -6,6 +6,8 @@
 
 #include <switch.h>
 
+#include "identity/identity_core.hpp"
+
 namespace inst::util {
     std::string ComputeUidFromMmcCid()
     {
@@ -16,28 +18,18 @@ namespace inst::util {
             if (R_FAILED(fsOpenDeviceOperator(&d)))
                 return;
 
-            std::array<unsigned char, 16> mmcCid = {};
+            inst::identity::PersonaSeed mmcCid{};
             const Result rc = fsDeviceOperatorGetMmcCid(&d, mmcCid.data(), mmcCid.size(), static_cast<s64>(mmcCid.size()));
             fsDeviceOperatorClose(&d);
-            if (R_FAILED(rc))
+            if (R_FAILED(rc)) {
+                std::fill(mmcCid.begin(), mmcCid.end(), 0);
                 return;
-
-            std::array<unsigned char, 32> hash = {};
-            sha256CalculateHash(hash.data(), mmcCid.data(), mmcCid.size());
-
-            static constexpr char kHex[] = "0123456789ABCDEF";
-            std::string out;
-            out.reserve(hash.size() * 2);
-            for (unsigned char b : hash) {
-                out.push_back(kHex[(b >> 4) & 0xF]);
-                out.push_back(kHex[b & 0xF]);
             }
 
+            std::string out = inst::identity::ComputeUidFromIdentityBytes(mmcCid);
             std::fill(mmcCid.begin(), mmcCid.end(), 0);
-            std::fill(hash.begin(), hash.end(), 0);
             uid = out;
         });
         return uid;
     }
 }
-

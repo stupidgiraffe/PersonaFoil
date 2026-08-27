@@ -33,7 +33,7 @@ SOFTWARE.
 #include "util/curl.hpp"
 #include "util/error.hpp"
 #include "util/hauth.hpp"
-#include "util/uid.hpp"
+#include "identity/identity.hpp"
 #include "util/lang.hpp"
 #include "util/config.hpp"
 #include "ui/instPage.hpp"
@@ -332,7 +332,7 @@ namespace tin::network
             std::string revisionValue;
             BuildVersionAndRevision(versionValue, revisionValue);
             const std::string themeHeader = "Theme: 0000000000000000000000000000000000000000000000000000000000000000";
-            const std::string uidHeader = "UID: " + inst::util::ComputeUidFromMmcCid();
+            const std::string uidHeader = "UID: " + inst::identity::GetActiveUid();
             const std::string versionHeader = "Version: " + versionValue;
             const std::string revisionHeader = "Revision: " + revisionValue;
             const std::string languageHeader = "Language: " + Language::GetRemoteHeaderLanguage();
@@ -810,4 +810,3 @@ namespace tin::network
         curl_easy_cleanup(curl);
     }
 }
-

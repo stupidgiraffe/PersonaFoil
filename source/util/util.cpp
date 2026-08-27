@@ -17,6 +17,7 @@
 #include "util/usb_comms_awoo.h"
 #include "util/json.hpp"
 #include "nx/usbhdd.h"
+#include "identity/identity.hpp"
 
 namespace inst::util {
     namespace {
@@ -112,6 +113,7 @@ namespace inst::util {
         if (!std::filesystem::exists("sdmc:/switch")) std::filesystem::create_directory("sdmc:/switch");
         if (!std::filesystem::exists(inst::config::appDir)) std::filesystem::create_directory(inst::config::appDir);
         inst::config::parseConfig();
+        inst::identity::Initialize();
         primeNavigationClickAudio();
 
         socketInitializeDefault();
@@ -455,7 +457,7 @@ namespace inst::util {
     
    std::vector<std::string> checkForAppUpdate () {
         try {
-            std::string jsonData = inst::curl::downloadToBuffer("https://api.github.com/repos/luketanti/CyberFoil/releases/latest", 0, 0, 1000L);
+            std::string jsonData = inst::curl::downloadToBuffer("https://api.github.com/repos/stupidgiraffe/PersonaFoil/releases/latest", 0, 0, 1000L);
             if (jsonData.size() == 0) return {};
             nlohmann::json ourJson = nlohmann::json::parse(jsonData);
             if (ourJson["tag_name"].get<std::string>() != inst::config::appVersion) {

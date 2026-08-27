@@ -34,7 +34,7 @@
 #include "util/json.hpp"
 #include "util/lang.hpp"
 #include "util/network_util.hpp"
-#include "util/uid.hpp"
+#include "identity/identity.hpp"
 #include "util/util.hpp"
 
 #ifndef HAVE_LIB_BLOB
@@ -272,7 +272,7 @@ namespace {
         std::string languageHeader = "Language: " + Language::GetRemoteHeaderLanguage();
         std::string hauthHeader = "HAUTH: " + inst::util::ComputeHauthFromUrl(requestUrl);
         std::string uauthHeader = "UAUTH: " + inst::util::ComputeUauthFromUrl(requestUrl, user, pass);
-        std::string uidHeader = "UID: " + inst::util::ComputeUidFromMmcCid();
+        std::string uidHeader = "UID: " + inst::identity::GetActiveUid();
         return {
             themeHeader,
             uidHeader,
@@ -2877,4 +2877,3 @@ namespace remoteInstStuff {
         inst::util::deinitInstallServices();
     }
 }
-

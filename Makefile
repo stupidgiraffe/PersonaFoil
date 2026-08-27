@@ -1,13 +1,18 @@
 #---------------------------------------------------------------------------------
 .SUFFIXES:
+.DEFAULT_GOAL := all
 #---------------------------------------------------------------------------------
 
+HOST_ONLY := $(filter host-test,$(MAKECMDGOALS))
+
+ifeq ($(HOST_ONLY),)
 ifeq ($(strip $(DEVKITPRO)),)
 $(error "Please set DEVKITPRO in your environment. export DEVKITPRO=<path to>/devkitpro")
 endif
 
 TOPDIR ?= $(CURDIR)
 include $(DEVKITPRO)/libnx/switch_rules
+endif
 
 PLUTONIUM_DIR := include/Plutonium
 PLUTONIUM_INCLUDE_SWITCH := include/Plutonium/Plutonium/Output-switch/include
@@ -42,18 +47,18 @@ PLUTONIUM_INCLUDE_SOURCE := include/Plutonium/Plutonium/Include
 #   of a homebrew executable (.nro). This is intended to be used for sysmodules.
 #   NACP building is skipped as well.
 #---------------------------------------------------------------------------------
-TARGET		:=	cyberfoil
+TARGET		:=	personafoil
 BUILD		:=	build
-SOURCES		:=	source source/ui source/data source/install source/nx source/nx/ipc source/util external/libhaze/source \
+SOURCES		:=	source source/ui source/data source/identity source/install source/nx source/nx/ipc source/util external/libhaze/source \
 			include/libusbhsfs/source include/libusbhsfs/source/fatfs include/libusbhsfs/source/ntfs-3g \
 			include/libusbhsfs/source/lwext4 include/libusbhsfs/source/sxos
 DATA		:=	data
-INCLUDES	:=	include include/ui include/data include/install include/nx include/nx/ipc include/util \
+INCLUDES	:=	include include/ui include/data include/identity include/install include/nx include/nx/ipc include/util \
 				include/libusbhsfs/include include/libusbhsfs/source \
 				$(PLUTONIUM_INCLUDE_SWITCH) $(PLUTONIUM_INCLUDE_OUTPUT) $(PLUTONIUM_INCLUDE_SOURCE) external/libhaze/include
-APP_TITLE	:=	CyberFoil
-APP_AUTHOR	:=	luketanti
-APP_VERSION	:=	1.4.6
+APP_TITLE	:=	PersonaFoil
+APP_AUTHOR	:=	PersonaFoil contributors
+APP_VERSION	:=	0.1.0
 GIT_COMMIT	:=	$(shell if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then git rev-parse --short=8 HEAD 2>/dev/null; elif [ -n "$$GITHUB_SHA" ]; then printf "%s" "$$GITHUB_SHA" | cut -c1-8; else echo nogit; fi)
 GIT_STATUS	:=	$(shell if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then if git diff --quiet --ignore-submodules HEAD -- 2>/dev/null && git diff --cached --quiet --ignore-submodules HEAD -- 2>/dev/null; then echo clean; else echo dirty; fi; elif [ -n "$$GITHUB_ACTIONS" ]; then echo clean; else echo nogit; fi)
 ifeq ($(RELEASE),1)
@@ -211,7 +216,15 @@ ifneq ($(ROMFS),)
 	export NROFLAGS += --romfsdir=$(CURDIR)/$(ROMFS)
 endif
 
-.PHONY: $(BUILD) clean all
+.PHONY: $(BUILD) clean all host-test
+
+HOST_CXX ?= g++
+HOST_TEST_BIN := build-host/identity_tests
+
+host-test:
+	@mkdir -p build-host
+	$(HOST_CXX) -std=c++20 -Wall -Wextra -Werror -Iinclude tests/identity_tests.cpp source/identity/identity_core.cpp -lcrypto -o $(HOST_TEST_BIN)
+	./$(HOST_TEST_BIN)
 
 #---------------------------------------------------------------------------------
 all: $(BUILD)
