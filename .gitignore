@@ -2,6 +2,8 @@
 *.nacp
 *.nro
 build
+/build-host/
+/dist/
 .vscode
 include/Plutonium
 AGENTS.md
@@ -15,6 +17,7 @@ scripts
 *.ps1
 *.log
 *.py
+!tools/uid_echo_server.py
 *.sh
 *.bat
 *.a

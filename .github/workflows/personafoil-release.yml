@@ -1,0 +1,52 @@
+name: PersonaFoil Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    container:
+      image: devkitpro/devkita64:latest
+
+    steps:
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Switch port libraries
+        run: dkp-pacman -S --noconfirm --needed switch-ntfs-3g switch-lwext4
+
+      - name: Build and package
+        shell: bash
+        run: |
+          set -euo pipefail
+          make -j"$(nproc)" RELEASE=1
+          test -s personafoil.nro
+          mkdir -p dist/switch/PersonaFoil
+          cp personafoil.nro dist/switch/PersonaFoil/personafoil.nro
+          python3 - <<'PY'
+          import os
+          import zipfile
+
+          with zipfile.ZipFile("personafoil.zip", "w", zipfile.ZIP_DEFLATED) as archive:
+              for root, _, files in os.walk("dist"):
+                  for name in files:
+                      path = os.path.join(root, name)
+                      archive.write(path, os.path.relpath(path, "dist"))
+          PY
+
+      - name: Publish tagged release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            personafoil.nro
+            personafoil.zip
+          generate_release_notes: true
