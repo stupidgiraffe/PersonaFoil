@@ -20,6 +20,7 @@ PersonaFoil v0.1.0 on branch `feature/persona-identity`.
 
 - `make host-test`: pass.
 - `make clean && make -j2 RELEASE=1` in `devkitpro/devkita64:latest`: pass; produced `personafoil.nro`.
+- GitHub Actions push and pull-request runs: host tests and devkitPro release builds passed.
 - No PersonaFoil-specific compiler warnings were observed. The pinned Plutonium/upstream build still emits existing warnings.
 
 Local release artifacts:
@@ -34,7 +35,6 @@ Local release artifacts:
 - On-device persistence across restart.
 - Native UID equality against the same console running unmodified CyberFoil.
 - Persona A/B stability against the controlled echo server.
-- GitHub Actions execution for this branch.
 
 These remain release-candidate gates and must not be reported as passed until measured.
 
@@ -45,5 +45,7 @@ PersonaFoil does not write PRODINFO/NAND, alter the physical CID, modify certifi
 ## Repository state
 
 - Upstream: `https://github.com/luketanti/CyberFoil.git`
-- Origin: `https://github.com/stupidgiraffe/PersonaFoil.git`
-- Final commit, CI URL, and draft PR URL will be recorded after publication.
+- Origin: `git@github.com:stupidgiraffe/PersonaFoil.git`
+- Published branch: `feature/persona-identity`
+- Draft pull request: <https://github.com/stupidgiraffe/PersonaFoil/pull/1>
+- CI runs: [push](https://github.com/stupidgiraffe/PersonaFoil/actions/runs/33065417853) and [pull request](https://github.com/stupidgiraffe/PersonaFoil/actions/runs/33065461317)
