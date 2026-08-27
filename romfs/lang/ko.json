@@ -33,7 +33,7 @@
     },
     "applet": {
       "title": "애플릿 모드가 지원되지 않습니다.",
-      "desc": "애플릿 모드에서 CyberFoil을 사용할 때 문제가 발생할 수 있습니다.\n문제가 있는 경우 설치된 타이틀 위에서 CyberFoil을 실행하는 것으로\n전환하십시오(게임을 시작하는 동안 R 버튼을 누르세요)!"
+      "desc": "애플릿 모드에서 PersonaFoil을 사용할 때 문제가 발생할 수 있습니다.\n문제가 있는 경우 설치된 타이틀 위에서 PersonaFoil을 실행하는 것으로\n전환하십시오(게임을 시작하는 동안 R 버튼을 누르세요)!"
     },
     "buttons": " 선택     종료",
     "info": {
@@ -45,16 +45,16 @@
       "usb": "NS-USBloader 같은 도구로 USB 설치를 진행합니다.",
       "net": "LAN 또는 인터넷 소스에서 파일을 설치합니다.",
       "sig": "시그니처 패치를 설치, 업데이트 또는 제거합니다.",
-      "set": "CyberFoil 환경설정과 샵 설정을 변경합니다.",
-      "backup": "선택한 사용자에 대한 모든 로컬 세이브 데이터를 설정된 샵 서버로 한 번에 백업합니다.\n\n작동 방식:\n1. 사용자가 여러 명이면 먼저 백업할 계정을 선택합니다.\n2. 샵이 설정되지 않았으면 CyberFoil이 저장된 프로필을 시도하고, 필요하면 샵 URL을 입력받습니다.\n3. 백업 메모를 입력합니다(필수).\n4. CyberFoil이 해당 사용자의 로컬 세이브를 스캔하고 각각 서버로 업로드합니다.\n5. 스캔 및 업로드 중 진행 상태가 표시됩니다.\n6. 마지막에 성공/실패 요약이 표시됩니다.",
-      "exit": "CyberFoil을 종료하고 HOME으로 돌아갑니다."
+      "set": "PersonaFoil 환경설정과 샵 설정을 변경합니다.",
+      "backup": "선택한 사용자에 대한 모든 로컬 세이브 데이터를 설정된 샵 서버로 한 번에 백업합니다.\n\n작동 방식:\n1. 사용자가 여러 명이면 먼저 백업할 계정을 선택합니다.\n2. 샵이 설정되지 않았으면 PersonaFoil이 저장된 프로필을 시도하고, 필요하면 샵 URL을 입력받습니다.\n3. 백업 메모를 입력합니다(필수).\n4. PersonaFoil이 해당 사용자의 로컬 세이브를 스캔하고 각각 서버로 업로드합니다.\n5. 스캔 및 업로드 중 진행 상태가 표시됩니다.\n6. 마지막에 성공/실패 요약이 표시됩니다.",
+      "exit": "PersonaFoil을 종료하고 HOME으로 돌아갑니다."
     }
   },
   "inst": {
     "net": {
       "help": {
         "title": "도움말",
-        "desc": "틴포일 모드에서 NS-USB로더와 같은 도구를 사용하여 다른 장치에서 원격으로 파일을 설치할 수 있습니다.\n스위치로 파일을 보내려면 PC 또는 모바일 장치에서\n이러한 소프트웨어 중 하나를 열고 스위치의 IP 주소(화면에 표시됨)를\n입력하고 파일을 선택한 다음 콘솔에 업로드하십시오!\n사용 중인 소프트웨어에서 특정 파일 형식을 선택할 수 없는 경우\n확장자가 허용하는 이름으로 이름을 변경해 보십시오.\nCyberFoil은 네트 설치 중에 파일 확장자를 신경 쓰지 않습니다!\n\n알아낼 수 없으면 파일을 SD 카드에 복사하고\n기본 메뉴에서 \"SD 카드에서 설치\" 옵션을 시도하세요!"
+        "desc": "틴포일 모드에서 NS-USB로더와 같은 도구를 사용하여 다른 장치에서 원격으로 파일을 설치할 수 있습니다.\n스위치로 파일을 보내려면 PC 또는 모바일 장치에서\n이러한 소프트웨어 중 하나를 열고 스위치의 IP 주소(화면에 표시됨)를\n입력하고 파일을 선택한 다음 콘솔에 업로드하십시오!\n사용 중인 소프트웨어에서 특정 파일 형식을 선택할 수 없는 경우\n확장자가 허용하는 이름으로 이름을 변경해 보십시오.\nPersonaFoil은 네트 설치 중에 파일 확장자를 신경 쓰지 않습니다!\n\n알아낼 수 없으면 파일을 SD 카드에 복사하고\n기본 메뉴에서 \"SD 카드에서 설치\" 옵션을 시도하세요!"
       },
       "src": {
         "title": "어디에서 설치하시겠습니까?",
@@ -211,7 +211,7 @@
     },
     "nca_verify": {
       "title": "잘못된 NCA 서명이 감지되었습니다!",
-      "desc": "부적절하게 서명된 소프트웨어는 신뢰할 수 있는 출처에서만 설치해야 합니다.\n카트리지 리팩 및 DLC 잠금 해제 프로그램이 포함된 파일은 항상 이 경고를 표시합니다.\nCyberFoil 설정에서 이 검사를 비활성화할 수 있습니다.\n\n설치를 계속하겠습니까?",
+      "desc": "부적절하게 서명된 소프트웨어는 신뢰할 수 있는 출처에서만 설치해야 합니다.\n카트리지 리팩 및 DLC 잠금 해제 프로그램이 포함된 파일은 항상 이 경고를 표시합니다.\nPersonaFoil 설정에서 이 검사를 비활성화할 수 있습니다.\n\n설치를 계속하겠습니까?",
       "opt1": "예, 위험을 이해합니다.",
       "error": "요청한 NCA가 제대로 서명되지 않았음: "
     },
@@ -235,7 +235,7 @@
     "backup_failed": "헤카테 patch.ini를 백업할 수 없습니다! 어쨌든 설치하겠습니까?",
     "backup_failed_desc": "헤카테를 사용하지 않는 경우 이 경고를 무시할 수 있습니다.",
     "download_failed": "서명 패치를 다운로드할 수 없습니다.",
-    "download_failed_desc": "CyberFoil 설정에 잘못된 소스를 제공했거나\n또는 호스트가 바로 다운되었을 수 있습니다.",
+    "download_failed_desc": "PersonaFoil 설정에 잘못된 소스를 제공했거나\n또는 호스트가 바로 다운되었을 수 있습니다.",
     "version_text2": "서명 패치가 최대 HOS 버전에 대해 업데이트되었습니다. ",
     "install_complete": "설치가 완료되었습니다!",
     "complete_desc": "적용하려면 콘솔을 다시 시작하세요.",
@@ -254,7 +254,7 @@
       "nca_verify": "설치 전에 NCA 서명 확인",
       "boost_mode": "설치 중 \"부스트 모드\" 활성화",
       "ask_delete": "설치 후 원본 파일 삭제 요청",
-      "auto_update": "CyberFoil 업데이트를 자동으로 확인",
+      "auto_update": "PersonaFoil 업데이트를 자동으로 확인",
       "gay_option": "애니메이션 제거",
       "sig_url": "서명 패치 소스 URL: ",
       "remote_url": "Remote URL: ",
@@ -266,7 +266,7 @@
       "remote_start_grid_mode": "Remote를 그리드 모드로 시작",
       "remote_reset_icons": "Remote 아이콘 캐시 초기화",
       "language": "언어: ",
-      "check_update": "CyberFoil 업데이트 확인",
+      "check_update": "PersonaFoil 업데이트 확인",
       "credits": "크레딧",
       "sound": "효과음을 활성화",
       "oled": "OLED 모드를 활성화",
@@ -290,28 +290,28 @@
     },
     "update": {
       "title": "업데이트 가능",
-      "desc0": "CyberFoil ",
+      "desc0": "PersonaFoil ",
       "desc1": " 지금 사용할 수 있습니다! 업데이트할 준비가 되었나요?",
       "opt0": "업데이트",
-      "top_info": "CyberFoil로 업데이트 중 ",
-      "bot_info": "CyberFoil 다운로드 중 ",
-      "bot_info2": "CyberFoil 추출 중 ",
+      "top_info": "PersonaFoil로 업데이트 중 ",
+      "bot_info": "PersonaFoil 다운로드 중 ",
+      "bot_info2": "PersonaFoil 추출 중 ",
       "complete": "업데이트 완료되었습니다!",
       "failed": "업데이트 실패하였습니다!",
       "end_desc": "이제 소프트웨어가 닫힙니다.",
       "title_check_fail": "업데이트를 찾을 수 없습니다.",
-      "desc_check_fail": "최신 버전의 CyberFoil을 사용 중입니다!"
+      "desc_check_fail": "최신 버전의 PersonaFoil을 사용 중입니다!"
     },
     "credits": {
       "title": "다음 분들께 감사드립니다!",
       "desc": "- HookedBehemoth for A LOT of contributions\n- Adubbz and other contributors for Tinfoil\n- XorTroll for Plutonium and Goldleaf\n- blawar (wife strangulator) and nicoboss for NSZ support\n- The kind folks at the AtlasNX Discuck (or at least some of them)\n- The also kind folks at the RetroNX Discuck (of no direct involvement)\n- namako8982 for the Momiji art\n- TheXzoron for being a baka"
     },
     "language": {
-      "title": "CyberFoil 언어 선택",
+      "title": "PersonaFoil 언어 선택",
       "desc": "언어 변경 후 소프트웨어가 종료됩니다. 취소하려면 B 버튼을 누르세요.",
       "system_language": "시스템"
     },
-    "title": "CyberFoil 설정을 변경하십시오!",
+    "title": "PersonaFoil 설정을 변경하십시오!",
     "buttons": " 선택/변경     취소"
   },
   "common": {

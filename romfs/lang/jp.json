@@ -33,7 +33,7 @@
     },
     "applet": {
       "title": "アプレットモードはサポートされていません",
-      "desc": "アプレットモードでCyberFoilを使用すると問題が発生する場合があります。\n問題が発生した場合は、インストール済みのタイトルでCyberFoilを実行するように切り替えてください\n(ゲームの開始中にRを押したままにしてください)!"
+      "desc": "アプレットモードでPersonaFoilを使用すると問題が発生する場合があります。\n問題が発生した場合は、インストール済みのタイトルでPersonaFoilを実行するように切り替えてください\n(ゲームの開始中にRを押したままにしてください)!"
     },
     "buttons": " 選択     終了",
     "info": {
@@ -45,16 +45,16 @@
       "usb": "NS-USBloader などのツールを使って USB 経由でインストールします。",
       "net": "LAN またはインターネットのソースからファイルをインストールします。",
       "sig": "署名パッチをインストール、更新、または削除します。",
-      "set": "CyberFoil の設定と Remote 設定を変更します。",
-      "backup": "選択したユーザーのローカルセーブデータを、設定済みの Remote サーバーへ一括でバックアップします。\n\n動作の流れ:\n1. ユーザーが複数ある場合は、先にバックアップするアカウントを選択します。\n2. Remote が未設定の場合、保存済みプロフィールを試し、必要なら Remote URL を入力します。\n3. バックアップメモを入力します（必須）。\n4. CyberFoil がそのユーザーのローカルセーブを走査し、各データをサーバーへアップロードします。\n5. 走査中とアップロード中は進行状況が表示されます。\n6. 最後に成功件数と失敗件数のサマリーを表示します。",
-      "exit": "CyberFoil を終了して HOME に戻ります。"
+      "set": "PersonaFoil の設定と Remote 設定を変更します。",
+      "backup": "選択したユーザーのローカルセーブデータを、設定済みの Remote サーバーへ一括でバックアップします。\n\n動作の流れ:\n1. ユーザーが複数ある場合は、先にバックアップするアカウントを選択します。\n2. Remote が未設定の場合、保存済みプロフィールを試し、必要なら Remote URL を入力します。\n3. バックアップメモを入力します（必須）。\n4. PersonaFoil がそのユーザーのローカルセーブを走査し、各データをサーバーへアップロードします。\n5. 走査中とアップロード中は進行状況が表示されます。\n6. 最後に成功件数と失敗件数のサマリーを表示します。",
+      "exit": "PersonaFoil を終了して HOME に戻ります。"
     }
   },
   "inst": {
     "net": {
       "help": {
         "title": "ヘルプ",
-        "desc": "TinfoilモードのNS-USBloaderなどのツールを使用して、他のデバイスからファイルをリモートでインストールできます。\nスイッチにファイルを送信するには、PCまたはモバイルデバイスでこれらのソフトウェアのいずれかを開き、\nスイッチのIPアドレス（画面に表示）を入力し、ファイルを選択して、コンソールにアップロードします！\n使用しているソフトウェアで特定のファイルタイプを選択できない場合は、\n拡張子の名前を受け入れ可能なものに変更してください。\nCyberFoilはネット経由のインストール中にファイル拡張子を気にしません！\n\n分からない場合は、ファイルをSDカードにコピーして\nメインメニューの[SDカードからインストール]オプションを試してください。"
+        "desc": "TinfoilモードのNS-USBloaderなどのツールを使用して、他のデバイスからファイルをリモートでインストールできます。\nスイッチにファイルを送信するには、PCまたはモバイルデバイスでこれらのソフトウェアのいずれかを開き、\nスイッチのIPアドレス（画面に表示）を入力し、ファイルを選択して、コンソールにアップロードします！\n使用しているソフトウェアで特定のファイルタイプを選択できない場合は、\n拡張子の名前を受け入れ可能なものに変更してください。\nPersonaFoilはネット経由のインストール中にファイル拡張子を気にしません！\n\n分からない場合は、ファイルをSDカードにコピーして\nメインメニューの[SDカードからインストール]オプションを試してください。"
       },
       "src": {
         "title": "どこからインストールしますか？",
@@ -211,7 +211,7 @@
     },
     "nca_verify": {
       "title": "無効なNCA署名が検出されました!",
-      "desc": "不適切に署名されたソフトウェアは、信頼できるソースからのみインストールする必要があります。\nカートリッジの再梱包とDLCロック解除を含むファイルには、常にこの警告が表示されます。\nCyberFoilの設定でこのチェックを無効にできます。\n\nインストールを続行してもよろしいですか？",
+      "desc": "不適切に署名されたソフトウェアは、信頼できるソースからのみインストールする必要があります。\nカートリッジの再梱包とDLCロック解除を含むファイルには、常にこの警告が表示されます。\nPersonaFoilの設定でこのチェックを無効にできます。\n\nインストールを続行してもよろしいですか？",
       "opt1": "はい、リスクを理解しています",
       "error": "要求されたNCAは適切に署名されていません: "
     },
@@ -235,7 +235,7 @@
     "backup_failed": "Hekate patch.iniをバックアップできませんでした！それでもインストールしますか?",
     "backup_failed_desc": "Hekateを使用しない場合、この警告は無視できます。",
     "download_failed": "署名パッチをダウンロードできませんでした",
-    "download_failed_desc": "CyberFoilの設定で無効なソースを指定したか、\nホストが現在ダウンしている可能性があります。",
+    "download_failed_desc": "PersonaFoilの設定で無効なソースを指定したか、\nホストが現在ダウンしている可能性があります。",
     "version_text2": "署名パッチがHOSバージョンまで更新されました ",
     "install_complete": "インストール完了!",
     "complete_desc": "本体を再起動して適用します",
@@ -254,7 +254,7 @@
       "nca_verify": "インストール前にNCA署名を検証する",
       "boost_mode": "インストール中に「ブーストモード」を有効にする",
       "ask_delete": "インストール後に元のファイルを削除するか尋ねる",
-      "auto_update": "CyberFoilのアップデートを自動的に確認する",
+      "auto_update": "PersonaFoilのアップデートを自動的に確認する",
       "gay_option": "絵を非表示にする",
       "sig_url": "署名パッチのソースURL: ",
       "remote_url": "Remote URL: ",
@@ -266,7 +266,7 @@
       "remote_start_grid_mode": "Remote をグリッド表示で起動する",
       "remote_reset_icons": "Remote のアイコンキャッシュをリセットする",
       "language": "言語: ",
-      "check_update": "CyberFoilのアップデートを確認",
+      "check_update": "PersonaFoilのアップデートを確認",
       "credits": "クレジット",
       "sound": "効果音を有効にする",
       "oled": "OLED モードを有効にする",
@@ -290,28 +290,28 @@
     },
     "update": {
       "title": "更新可能",
-      "desc0": "CyberFoil ",
+      "desc0": "PersonaFoil ",
       "desc1": " 現在入手可能です！更新する準備ができましたか?",
       "opt0": "アップデート",
-      "top_info": "CyberFoilを更新 ",
-      "bot_info": "CyberFoilをダウンロード中 ",
-      "bot_info2": "CyberFoilを展開中 ",
+      "top_info": "PersonaFoilを更新 ",
+      "bot_info": "PersonaFoilをダウンロード中 ",
+      "bot_info2": "PersonaFoilを展開中 ",
       "complete": "更新完了!",
       "failed": "更新失敗!",
       "end_desc": "これでソフト​​ウェアが閉じられます。",
       "title_check_fail": "更新が見つかりません",
-      "desc_check_fail": "既にCyberFoilの最新バージョンを使用しています!"
+      "desc_check_fail": "既にPersonaFoilの最新バージョンを使用しています!"
     },
     "credits": {
       "title": "以下の方々に感謝します!",
       "desc": "- HookedBehemoth for A LOT of contributions\n- Adubbz and other contributors for Tinfoil\n- XorTroll for Plutonium and Goldleaf\n- blawar (wife strangulator) and nicoboss for NSZ support\n- The kind folks at the AtlasNX Discuck (or at least some of them)\n- The also kind folks at the RetroNX Discuck (of no direct involvement)\n- namako8982 for the Momiji art\n- TheXzoron for being a baka"
     },
     "language": {
-      "title": "CyberFoilの言語を選択",
+      "title": "PersonaFoilの言語を選択",
       "desc": "言語を変更した後、ソフトウェアは閉じられます。 Bを押してキャンセルします。",
       "system_language": "システム"
     },
-    "title": "CyberFoilの設定を変更する",
+    "title": "PersonaFoilの設定を変更する",
     "buttons": " 選択/変更     キャンセル"
   },
   "common": {

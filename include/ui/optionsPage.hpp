@@ -2,6 +2,7 @@
 #include <pu/Plutonium>
 #include "ui/bottomHint.hpp"
 #include "util/config.hpp"
+#include "identity/identity.hpp"
 
 using namespace pu::ui::elm;
 namespace inst::ui {
@@ -81,6 +82,9 @@ namespace inst::ui {
             void refreshRemoteForm();
             void editRemoteFormField();
             void saveRemoteForm();
+            void managePersona(const inst::identity::Persona& persona);
+            void createPersona();
+            void showIdentityDiagnostics();
             void rememberCurrentSectionMenuIndex();
             void restoreSelectedSectionMenuIndex();
             void setSelectedSectionAndRefresh(int newSection);

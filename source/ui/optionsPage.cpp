@@ -15,6 +15,7 @@
 #include "ui/instPage.hpp"
 #include "remoteInstall.hpp"
 #include "ui/bottomHint.hpp"
+#include "identity/identity.hpp"
 
 #define COLOR(hex) pu::ui::Color::FromHex(hex)
 
@@ -119,7 +120,7 @@ namespace inst::ui {
                 return "Firefox (Windows)";
             if (normalized == "custom")
                 return "Custom";
-            return "Default (CyberFoil)";
+            return "Default (CyberFoil compatibility)";
         }
 
         int GetUserAgentProfileChoiceIndex(const std::string& mode)
@@ -272,11 +273,11 @@ namespace inst::ui {
         this->botRect = Rectangle::New(0, 660, 1280, 60, botColor);
         this->sideNavRect = Rectangle::New(0, 136, 300, 523, inst::config::oledMode ? COLOR("#FFFFFF18") : COLOR("#170909A0"));
         if (inst::config::gayMode) {
-            this->titleImage = Image::New(-113, -8, "romfs:/images/logo.png");
+            this->titleImage = Image::New(-113, -8, "romfs:/images/personafoil-logo.png");
             this->appVersionText = TextBlock::New(367, 29, "v" + inst::config::appVersion + (inst::config::appGitMeta.empty() ? "" : ("\n" + inst::config::appGitMeta)), 22);
         }
         else {
-            this->titleImage = Image::New(0, -8, "romfs:/images/logo.png");
+            this->titleImage = Image::New(0, -8, "romfs:/images/personafoil-logo.png");
             this->appVersionText = TextBlock::New(480, 29, "v" + inst::config::appVersion + (inst::config::appGitMeta.empty() ? "" : ("\n" + inst::config::appGitMeta)), 22);
         }
         this->appVersionText->SetColor(COLOR("#FFFFFFFF"));
@@ -342,7 +343,7 @@ namespace inst::ui {
         this->Add(this->ipText);
         this->Add(this->butText);
         this->Add(this->pageInfoText);
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             auto sectionHighlight = Rectangle::New(30, 152 + (i * 56), 240, 48, COLOR("#FFFFFF00"), 10);
             this->sectionHighlights.push_back(sectionHighlight);
             this->Add(sectionHighlight);
@@ -465,7 +466,7 @@ namespace inst::ui {
     }
 
     void optionsPage::setSectionNavText() {
-        static const std::vector<std::string> sectionLabels = {"General", "Remote", "System"};
+        static const std::vector<std::string> sectionLabels = {"General", "Identity", "Remote", "System"};
         for (size_t i = 0; i < this->sectionTexts.size() && i < sectionLabels.size(); i++) {
             const bool selected = static_cast<int>(i) == this->selectedSection;
             this->sectionHighlights[i]->SetColor(selected
@@ -508,6 +509,24 @@ namespace inst::ui {
         }
 
         if (this->selectedSection == 1) {
+            const auto personas = inst::identity::ListPersonas();
+            const std::string activeId = inst::identity::GetActivePersonaId();
+            addItem("Current identity: " + inst::identity::GetActiveIdentityName(), false, false);
+            addItem("UID fingerprint: " + inst::identity::FormatUidFingerprint(inst::identity::GetActiveUid()), false, false);
+            addItem("Native Switch" + std::string(activeId == inst::identity::kNativeIdentityId ? "  (Active)" : ""), false, false);
+            for (const auto& persona : personas) {
+                std::string label = persona.name;
+                if (persona.id == activeId)
+                    label += "  (Active)";
+                label += "  " + inst::identity::FormatUidFingerprint(inst::identity::ComputeUidFromIdentityBytes(persona.seed));
+                addItem(label, false, false);
+            }
+            addItem("Create new persona", false, false);
+            addItem("Diagnostics (" + std::to_string(personas.size()) + " personas)", false, false);
+            return;
+        }
+
+        if (this->selectedSection == 2) {
             std::vector<inst::config::RemoteProfile> remotes = inst::config::LoadRemotes();
             std::string dbVersion = inst::offline::dbupdate::GetInstalledVersion();
             if (dbVersion.empty())
@@ -545,6 +564,78 @@ namespace inst::ui {
         this->setSectionNavText();
         this->setSettingsMenuText();
         if (resetSelection) this->menu->SetSelectedIndex(0);
+    }
+
+    void optionsPage::showIdentityDiagnostics() {
+        const auto personas = inst::identity::ListPersonas();
+        std::string body = "Application version: " + inst::config::appVersionFull;
+        body += "\nSchema version: " + std::to_string(inst::identity::kIdentitySchemaVersion);
+        body += "\nIdentity mode: " + std::string(inst::identity::IsNativeMode() ? "Native" : "Persona");
+        body += "\nActive identity: " + inst::identity::GetActiveIdentityName();
+        body += "\nUID fingerprint: " + inst::identity::FormatUidFingerprint(inst::identity::GetActiveUid());
+        body += "\nPersona count: " + std::to_string(personas.size());
+        body += "\nConfiguration loaded: " + std::string(inst::identity::ConfigurationLoadedSuccessfully() ? "yes" : "no");
+        body += "\n\n" + inst::identity::GetConfigurationStatus();
+        mainApp->CreateShowDialog("PersonaFoil diagnostics", body, {"common.ok"_lang}, true);
+    }
+
+    void optionsPage::createPersona() {
+        const std::string defaultName = inst::identity::NextDefaultPersonaName();
+        const int confirm = mainApp->CreateShowDialog(
+            "Create persona?",
+            "Generate a persistent local identity named " + defaultName + "?\n\nIts random seed stays on this SD card.",
+            {"Create", "common.cancel"_lang},
+            false);
+        if (confirm != 0)
+            return;
+
+        std::string createdId;
+        std::string error;
+        if (!inst::identity::CreatePersona(defaultName, false, &createdId, &error)) {
+            mainApp->CreateShowDialog("Could not create persona", error, {"common.ok"_lang}, true);
+            return;
+        }
+
+        const int activate = mainApp->CreateShowDialog(
+            "Persona created",
+            defaultName + " is saved. Activate it now?",
+            {"Activate", "Later"},
+            false);
+        if (activate == 0 && !inst::identity::ActivatePersona(createdId, &error))
+            mainApp->CreateShowDialog("Could not activate persona", error, {"common.ok"_lang}, true);
+        this->refreshOptions();
+    }
+
+    void optionsPage::managePersona(const inst::identity::Persona& persona) {
+        const bool active = inst::identity::GetActivePersonaId() == persona.id;
+        const std::string fingerprint = inst::identity::FormatUidFingerprint(inst::identity::ComputeUidFromIdentityBytes(persona.seed));
+        const int action = mainApp->CreateShowDialog(
+            persona.name,
+            "UID fingerprint: " + fingerprint + (active ? "\nCurrent identity" : ""),
+            {"Activate", "Rename", "Delete", "View fingerprint", "common.cancel"_lang},
+            false);
+
+        std::string error;
+        if (action == 0) {
+            if (!inst::identity::ActivatePersona(persona.id, &error))
+                mainApp->CreateShowDialog("Could not activate persona", error, {"common.ok"_lang}, true);
+        } else if (action == 1) {
+            const std::string name = TrimString(inst::util::softwareKeyboard("Persona name", persona.name, 64));
+            if (name.empty())
+                return;
+            if (!inst::identity::RenamePersona(persona.id, name, &error))
+                mainApp->CreateShowDialog("Could not rename persona", error, {"common.ok"_lang}, true);
+        } else if (action == 2) {
+            std::string warning = "Delete " + persona.name + "? This cannot be undone.";
+            if (active)
+                warning += "\n\nNative Switch will become active.";
+            const int confirm = mainApp->CreateShowDialog("Delete persona?", warning, {"Delete", "common.cancel"_lang}, false);
+            if (confirm == 0 && !inst::identity::DeletePersona(persona.id, &error))
+                mainApp->CreateShowDialog("Could not delete persona", error, {"common.ok"_lang}, true);
+        } else if (action == 3) {
+            mainApp->CreateShowDialog(persona.name, "UID fingerprint: " + fingerprint, {"common.ok"_lang}, true);
+        }
+        this->refreshOptions();
     }
 
     void optionsPage::openRemoteList(int selectedIndex) {
@@ -1033,6 +1124,33 @@ namespace inst::ui {
                 if ((selectedIndex < 0) || (selectedIndex >= static_cast<int>(sizeof(kGeneralMap) / sizeof(kGeneralMap[0])))) return;
                 selectedIndex = kGeneralMap[selectedIndex];
             } else if (this->selectedSection == 1) {
+                const auto personas = inst::identity::ListPersonas();
+                if (selectedIndex == 0 || selectedIndex == 1) {
+                    this->showIdentityDiagnostics();
+                    return;
+                }
+                if (selectedIndex == 2) {
+                    std::string error;
+                    if (!inst::identity::ActivateNative(&error))
+                        mainApp->CreateShowDialog("Could not activate Native Switch", error, {"common.ok"_lang}, true);
+                    this->refreshOptions();
+                    return;
+                }
+                const int personaIndex = selectedIndex - 3;
+                if (personaIndex >= 0 && personaIndex < static_cast<int>(personas.size())) {
+                    this->managePersona(personas[static_cast<std::size_t>(personaIndex)]);
+                    return;
+                }
+                if (selectedIndex == static_cast<int>(personas.size()) + 3) {
+                    this->createPersona();
+                    return;
+                }
+                if (selectedIndex == static_cast<int>(personas.size()) + 4) {
+                    this->showIdentityDiagnostics();
+                    return;
+                }
+                return;
+            } else if (this->selectedSection == 2) {
                 static const int kRemoteMap[] = {20, 21, 25, 26, 12, 13, 27, 24, 19, 23, 22};
                 if ((selectedIndex < 0) || (selectedIndex >= static_cast<int>(sizeof(kRemoteMap) / sizeof(kRemoteMap[0])))) return;
                 selectedIndex = kRemoteMap[selectedIndex];
@@ -1183,7 +1301,7 @@ namespace inst::ui {
                     }
 
                     const std::vector<std::string> profiles = {
-                        "Default (CyberFoil)",
+                        "Default (CyberFoil compatibility)",
                         "Tinfoil",
                         "Chrome (Windows)",
                         "Safari (iPhone)",
@@ -1196,7 +1314,7 @@ namespace inst::ui {
                     const std::string currentLabel = profiles[currentIndex];
                     int profileChoice = inst::ui::mainApp->CreateShowDialog(
                         "User-Agent profile",
-                        "Used for file/media downloads. Remote API always uses CyberFoil.",
+                        "Used for file/media downloads. Remote API preserves the CyberFoil-compatible User-Agent.",
                         profiles,
                         false
                     );

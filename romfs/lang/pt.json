@@ -33,7 +33,7 @@
     },
     "applet": {
       "title": "Modo applet não suportado",
-      "desc": "Poderá ter problemas se usar o CyberFoil em modo Applet. Se\ntiver problemas, execute o CyberFoil através de um título\ninstalado (mantenha R primido enquanto inicia um jogo)!"
+      "desc": "Poderá ter problemas se usar o PersonaFoil em modo Applet. Se\ntiver problemas, execute o PersonaFoil através de um título\ninstalado (mantenha R primido enquanto inicia um jogo)!"
     },
     "buttons": " Selecionar     Sair",
     "info": {
@@ -45,16 +45,16 @@
       "usb": "Instale por USB com ferramentas como o NS-USBloader.",
       "net": "Instale ficheiros a partir de fontes LAN ou internet.",
       "sig": "Instale, atualize ou remova os signature patches.",
-      "set": "Altere as preferências do CyberFoil e as definições de Remote.",
-      "backup": "Faz backup de todos os dados salvos locais do usuário selecionado para o servidor Remote configurado em uma única ação.\n\nComo funciona:\n1. Se houver vários usuários, escolha primeiro a conta para backup.\n2. Se nenhum Remote estiver configurado, o CyberFoil tenta perfis salvos e depois solicita uma URL de Remote.\n3. Insira uma nota de backup (obrigatória).\n4. O CyberFoil analisa os saves locais desse usuário e envia cada um ao servidor.\n5. O progresso é exibido durante a análise e o envio.\n6. Um resumo final mostra sucessos e falhas.",
-      "exit": "Feche o CyberFoil e volte ao menu HOME."
+      "set": "Altere as preferências do PersonaFoil e as definições de Remote.",
+      "backup": "Faz backup de todos os dados salvos locais do usuário selecionado para o servidor Remote configurado em uma única ação.\n\nComo funciona:\n1. Se houver vários usuários, escolha primeiro a conta para backup.\n2. Se nenhum Remote estiver configurado, o PersonaFoil tenta perfis salvos e depois solicita uma URL de Remote.\n3. Insira uma nota de backup (obrigatória).\n4. O PersonaFoil analisa os saves locais desse usuário e envia cada um ao servidor.\n5. O progresso é exibido durante a análise e o envio.\n6. Um resumo final mostra sucessos e falhas.",
+      "exit": "Feche o PersonaFoil e volte ao menu HOME."
     }
   },
   "inst": {
     "net": {
       "help": {
         "title": "Ajuda",
-        "desc": "Os Ficheiros podem ser instalados remotamente a partir de outros dispositivos usando ferramentas como o\nNS-USBloader em modo Tinfoil. Para enviar ficheiros para a Switch, abra um\ndos softwares compatíveis no PC ou no telemóvel, insira o\n endreço de IP da Switch (aparece no ecrã) selecione os ficheiros e envie para\na consola! Se não conseguir selecionar um tipo de ficheiro, tente renomeá-lo para uma extensão compatível.\nO CyberFoil não considera a extensão nas instalações de rede!\n\nSe tiver problemas ou configurar, apenas copie os ficheiros para o cartão SD\ne tente a opção \"Instalação através do cartão SD\" presente no menu principal!"
+        "desc": "Os Ficheiros podem ser instalados remotamente a partir de outros dispositivos usando ferramentas como o\nNS-USBloader em modo Tinfoil. Para enviar ficheiros para a Switch, abra um\ndos softwares compatíveis no PC ou no telemóvel, insira o\n endreço de IP da Switch (aparece no ecrã) selecione os ficheiros e envie para\na consola! Se não conseguir selecionar um tipo de ficheiro, tente renomeá-lo para uma extensão compatível.\nO PersonaFoil não considera a extensão nas instalações de rede!\n\nSe tiver problemas ou configurar, apenas copie os ficheiros para o cartão SD\ne tente a opção \"Instalação através do cartão SD\" presente no menu principal!"
       },
       "src": {
         "title": "Deseja instalar através de onde?",
@@ -211,7 +211,7 @@
     },
     "nca_verify": {
       "title": "Detetada assinatura NCA inválida!",
-      "desc": "O software não assinado corretamente deverá ser instalado apenas de fontes\nconfiáveis. Ficheiros que contiverem repaks de cartuchos ou desbloqueadores de DLC mostrarão\nsempre esta mensagem. Esta verificação pode ser desligada nas definições do CyberFoil.\n\nTem a certeza que deseja continuar a instalação?",
+      "desc": "O software não assinado corretamente deverá ser instalado apenas de fontes\nconfiáveis. Ficheiros que contiverem repaks de cartuchos ou desbloqueadores de DLC mostrarão\nsempre esta mensagem. Esta verificação pode ser desligada nas definições do PersonaFoil.\n\nTem a certeza que deseja continuar a instalação?",
       "opt1": "Sim, eu compreendo os riscos",
       "error": "O NCA solicitado não está corretamente assinado: "
     },
@@ -235,7 +235,7 @@
     "backup_failed": "Não foi possível salvaguardar o patches.ini do Hekate! Instalar mesmo assim?",
     "backup_failed_desc": "Se não usar Hekate pode ignorar este aviso.",
     "download_failed": "Impossível trasnferir os patches de assinaturas",
-    "download_failed_desc": "Talvez tenha definido uma fonte errada nas definições do CyberFoil,\nou o servidor está apenas em baixo neste momento.",
+    "download_failed_desc": "Talvez tenha definido uma fonte errada nas definições do PersonaFoil,\nou o servidor está apenas em baixo neste momento.",
     "version_text2": "Os patches de assinaturas foram atualizados para funcionar até à versão ",
     "install_complete": "Instalação completa!",
     "complete_desc": "Reinicie a consola para aplicar",
@@ -254,7 +254,7 @@
       "nca_verify": "Verificar a assinatura NCA antes da instalação",
       "boost_mode": "Ativar \"boost mode\" durante as instalações",
       "ask_delete": "Questionar a eliminação dos ficheiros orginais depois da instalação",
-      "auto_update": "Procurar atualizações do CyberFoil automaticamente",
+      "auto_update": "Procurar atualizações do PersonaFoil automaticamente",
       "gay_option": "Remover animé",
       "sig_url": "URL da fonte dos patches de assinaturas: ",
       "remote_url": "URL Remote: ",
@@ -266,7 +266,7 @@
       "remote_start_grid_mode": "Iniciar o Remote no modo grelha",
       "remote_reset_icons": "Repor a cache de ícones do Remote",
       "language": "Idioma: ",
-      "check_update": "Procurar atualizações do CyberFoil",
+      "check_update": "Procurar atualizações do PersonaFoil",
       "credits": "Créditos",
       "sound": "Ativar sons",
       "oled": "Ativar modo OLED",
@@ -290,28 +290,28 @@
     },
     "update": {
       "title": "Atualização disponível",
-      "desc0": "CyberFoil ",
+      "desc0": "PersonaFoil ",
       "desc1": " está disponível! Pronto para atualizar?",
       "opt0": "Atualizar",
-      "top_info": "A atualizar o CyberFoil ",
-      "bot_info": "A transferir o CyberFoil ",
-      "bot_info2": "A extrair o CyberFoil ",
+      "top_info": "A atualizar o PersonaFoil ",
+      "bot_info": "A transferir o PersonaFoil ",
+      "bot_info2": "A extrair o PersonaFoil ",
       "complete": "Atulização completa!",
       "failed": "Atualização falhada!",
       "end_desc": "O software será encerrado.",
       "title_check_fail": "Sem atualizações",
-      "desc_check_fail": "Esta é a versão mais recente do CyberFoil!"
+      "desc_check_fail": "Esta é a versão mais recente do PersonaFoil!"
     },
     "credits": {
       "title": "Agradecimentos às seguintes pessoas!",
       "desc": "- HookedBehemoth por muitas contribuições\n- Adubbz e outros contribuidores pelo o Tinfoil\n- XorTroll pelo o Plutonium e Goldleaf\n- blawar (estrangulador de esposas) e nicoboss pelo suporte NSZ\n- O pessoal do AtlasNX Discuck (ou pelo menos alguns deles)\n- Tmabém para o pessoal do RetroNX Discuck (sem involvimento direto)\n- namako8982 pela arte da Momiji\n- TheXzoron por ser um idiota"
     },
     "language": {
-      "title": "Selecione o idioma do CyberFoil",
+      "title": "Selecione o idioma do PersonaFoil",
       "desc": "O software será encerrado depois de alterar o idioma. Pressione B para cancelar.",
       "system_language": "Sistema"
     },
-    "title": "Alteração de deifinições do CyberFoil!",
+    "title": "Alteração de deifinições do PersonaFoil!",
     "buttons": " Selecionar/Alterar     Cancelar"
   },
   "common": {
