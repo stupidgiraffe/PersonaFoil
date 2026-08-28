@@ -42,6 +42,9 @@ jobs:
                       path = os.path.join(root, name)
                       archive.write(path, os.path.relpath(path, "dist"))
           PY
+          sha256sum personafoil.nro personafoil.zip > SHA256SUMS.txt
+          grep -Eq "^[0-9a-f]{64}  personafoil\.nro$" SHA256SUMS.txt
+          grep -Eq "^[0-9a-f]{64}  personafoil\.zip$" SHA256SUMS.txt
 
       - name: Publish tagged release
         uses: softprops/action-gh-release@v2
@@ -49,4 +52,5 @@ jobs:
           files: |
             personafoil.nro
             personafoil.zip
+            SHA256SUMS.txt
           generate_release_notes: true
