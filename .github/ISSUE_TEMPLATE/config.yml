@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security issue
+    url: https://github.com/stupidgiraffe/PersonaFoil/security
+    about: Please use GitHub security reporting for sensitive vulnerabilities when available.

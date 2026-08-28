@@ -1,51 +1,45 @@
-# PersonaFoil status
+# PersonaFoil Status
 
 ## Current target
 
-PersonaFoil v0.1.0 on branch `feature/persona-identity`.
+Pre-release v0.1.0 on `feature/persona-identity`, tracked by draft PR #1.
 
-## Implemented
+## Core implementation
 
-- Centralized native/persona identity abstraction.
-- Upstream-compatible native CID → SHA-256 → uppercase UID flow.
-- Persistent 16-byte persona seeds generated with libnx `randomGet`.
-- Versioned `identity.json` with guarded parsing and backup-based safe writes.
-- Native fallback for missing or deleted active personas.
-- Create, activate, rename, delete, fingerprint, and diagnostics UI under Settings → Identity.
-- All four known UID-emitting request paths routed through `GetActiveUid()`.
-- Separate PersonaFoil NRO name, SD directory, configuration path, logs, branding, update endpoint, CI, and release ZIP layout.
-- Host tests, controlled UID echo server, identity/testing/upstream documentation, GPLv3 and upstream attribution.
+- Native mode preserves CyberFoil's eMMC-CID → SHA-256 → uppercase UID behavior.
+- Persona mode uses persistent local 16-byte seeds with the same UID format.
+- Persona create/activate/rename/delete, Native fallback, diagnostics, CI, packaging, and controlled echo-server tooling are implemented.
+- **New Identity** creates and activates one saved persona in a single persisted transaction.
+- The self-updater uses stable semantic versions, exact official GitHub Release assets, SHA-256 verification, actual launch-path detection, backup, and rollback handling.
 
-## Verified locally
+## Real hardware observations
 
-- `make host-test`: pass.
-- `make clean && make -j2 RELEASE=1` in `devkitpro/devkita64:latest`: pass; produced `personafoil.nro`.
-- GitHub Actions push and pull-request runs: host tests and devkitPro release builds passed.
-- No PersonaFoil-specific compiler warnings were observed. The pinned Plutonium/upstream build still emits existing warnings.
+| Check | Status |
+|---|---|
+| PersonaFoil launches on Switch | observed |
+| Persona creation / UID derivation | observed |
+| Persona activation changes displayed UID fingerprint | observed |
+| Outgoing HTTP UID changes Native → Persona | **not yet validated** |
+| Persona UID persists across restart | **not yet validated** |
+| Returning to Native reproduces original outgoing UID | **not yet validated** |
+| Verified release-to-release updater | **not yet validated** |
 
-Local release artifacts:
+## Remaining release gates
 
-- `personafoil.nro`: 14,635,004 bytes; SHA-256 `d6e5d6163d247c085ae3247f29612f457e3fbcd14f77aba57aa8160d47a5c945`.
-- `personafoil.zip`: 6,736,473 bytes; SHA-256 `c4776742f9f40da4fff92a35cf7ac5784da37ab3db713ca56310cde1c4ad30cc`.
-- ZIP payload: `switch/PersonaFoil/personafoil.nro`.
+Controlled endpoint:
 
-## Not yet verified
+```text
+Native -> UID A
+Persona 1 -> UID B
+restart -> UID B
+Persona 2 -> UID C
+Native -> UID A
+```
 
-- Nintendo Switch hardware launch and UI interaction.
-- On-device persistence across restart.
-- Native UID equality against the same console running unmodified CyberFoil.
-- Persona A/B stability against the controlled echo server.
+Expected: A, B, and C are distinct; Persona 1 is stable across restart; Native returns exactly to A.
 
-These remain release-candidate gates and must not be reported as passed until measured.
+Updater: after two real releases exist, install the older release, update in-app to the newer release, relaunch, and confirm version/config/personas/Remotes/offline DB remain intact.
 
-## Safety statement
+## Release discipline
 
-PersonaFoil does not write PRODINFO/NAND, alter the physical CID, modify certificates or serials, install a sysmodule, import third-party hardware identity, randomize per request, or add telemetry.
-
-## Repository state
-
-- Upstream: `https://github.com/luketanti/CyberFoil.git`
-- Origin: `git@github.com:stupidgiraffe/PersonaFoil.git`
-- Published branch: `feature/persona-identity`
-- Draft pull request: <https://github.com/stupidgiraffe/PersonaFoil/pull/1>
-- CI runs: [push](https://github.com/stupidgiraffe/PersonaFoil/actions/runs/33065417853) and [pull request](https://github.com/stupidgiraffe/PersonaFoil/actions/runs/33065461317)
+Do not merge PR #1, create a version tag, or publish a release until explicitly approved.

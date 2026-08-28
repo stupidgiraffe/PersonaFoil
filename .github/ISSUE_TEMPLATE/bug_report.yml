@@ -1,0 +1,58 @@
+name: Bug report
+description: Report a reproducible PersonaFoil problem
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve PersonaFoil. **Do not post passwords, authentication tokens, Authorization headers, physical CID values, persona seeds, or private service credentials.**
+  - type: input
+    id: version
+    attributes:
+      label: PersonaFoil version
+      placeholder: v0.1.0 or build metadata
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Switch firmware
+    validations:
+      required: true
+  - type: input
+    id: atmosphere
+    attributes:
+      label: Atmosphere version
+      description: Use N/A if not applicable.
+  - type: dropdown
+    id: launch
+    attributes:
+      label: Launch mode
+      options:
+        - Full-memory application mode
+        - Applet / limited-memory mode
+        - Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostic report / screenshots
+      description: Attach PersonaFoil's exported diagnostic report and screenshots if useful. Review them before posting.
