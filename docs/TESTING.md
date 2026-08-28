@@ -73,3 +73,21 @@ Also inspect `sdmc:/switch/PersonaFoil/identity.json` and confirm it contains pe
 ## Reporting
 
 Record firmware, Atmosphère, libnx/devkitPro build environment, application/full-mode launch method, test-server version, observed fingerprints, and whether the application was restarted. Do not publish raw persona seeds, credentials, Authorization headers, or the physical CID.
+
+## Current real-hardware status
+
+Observed: PersonaFoil launches; persona creation/derivation executes; activating a persona changes the displayed UID fingerprint.
+
+Still required before outgoing identity is called hardware validated:
+
+```text
+Native -> controlled endpoint -> UID A
+Persona 1 -> controlled endpoint -> UID B
+restart -> controlled endpoint -> UID B
+Persona 2 -> controlled endpoint -> UID C
+Native -> controlled endpoint -> UID A
+```
+
+Require `A != B`, `A != C`, `B != C`, Persona 1 stability across restart, and exact Native equality before/after.
+
+The in-app updater is not hardware validated until an actual older stable release successfully verifies/installs a newer stable release and preserves PersonaFoil user state.

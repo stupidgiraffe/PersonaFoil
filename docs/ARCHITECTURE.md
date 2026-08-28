@@ -31,3 +31,13 @@ Identity state is protected by one mutex. Request code snapshots only the active
 ## Scope
 
 This architecture virtualizes only the `UID` value emitted by PersonaFoil. It does not modify global Horizon services, PRODINFO, NAND, certificates, console serials, or other applications.
+
+## Verified updater boundary
+
+Update discovery and parsing are separated from Switch filesystem installation. Portable `update_core` logic owns stable semantic-version parsing, exact asset selection, trusted release-URL checks, and strict `SHA256SUMS.txt` parsing. The Switch-specific updater obtains the launched NRO path from process argv, downloads only official stable GitHub Release assets, verifies SHA-256 before touching the installed executable, stages `.new`, preserves `.bak`, and attempts rollback on final replacement failure.
+
+Persona/config/offline-database/Remote data are outside the updater transaction.
+
+## Diagnostic reports
+
+Diagnostic export is privacy-minimizing: it records build/environment/state fingerprints useful for support but excludes physical CID, full UID, persona seed material, passwords, Remote credentials/URLs, Authorization headers, and authentication tokens.

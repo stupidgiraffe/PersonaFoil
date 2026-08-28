@@ -18,6 +18,7 @@
 #include "util/json.hpp"
 #include "nx/usbhdd.h"
 #include "identity/identity.hpp"
+#include "util/update.hpp"
 
 namespace inst::util {
     namespace {
@@ -59,45 +60,6 @@ namespace inst::util {
             return audioPath;
         }
 
-        std::string NormalizeReleaseNotes(std::string text) {
-            if (text.empty())
-                return "No changelog available for this release.";
-
-            std::string out;
-            out.reserve(text.size());
-            bool lastWasNewline = false;
-            int consecutiveNewlines = 0;
-            for (char c : text) {
-                if (c == '\r')
-                    continue;
-                if (c == '\n') {
-                    if (!lastWasNewline) {
-                        out.push_back('\n');
-                        consecutiveNewlines = 1;
-                    } else if (consecutiveNewlines < 2) {
-                        out.push_back('\n');
-                        consecutiveNewlines++;
-                    }
-                    lastWasNewline = true;
-                    continue;
-                }
-                out.push_back(c);
-                lastWasNewline = false;
-                consecutiveNewlines = 0;
-            }
-
-            while (!out.empty() && (out.back() == '\n' || out.back() == ' ' || out.back() == '\t'))
-                out.pop_back();
-            if (out.empty())
-                return "No changelog available for this release.";
-
-            static constexpr std::size_t kMaxReleaseNotesLen = 3500;
-            if (out.size() > kMaxReleaseNotesLen) {
-                out = out.substr(0, kMaxReleaseNotesLen);
-                out += "\n\n[Changelog truncated]";
-            }
-            return out;
-        }
     }
 
     void SecureWipe(void* ptr, std::size_t len)
@@ -456,32 +418,16 @@ namespace inst::util {
     }
     
    std::vector<std::string> checkForAppUpdate () {
-        try {
-            std::string jsonData = inst::curl::downloadToBuffer("https://api.github.com/repos/stupidgiraffe/PersonaFoil/releases/latest", 0, 0, 1000L);
-            if (jsonData.size() == 0) return {};
-            nlohmann::json ourJson = nlohmann::json::parse(jsonData);
-            if (ourJson["tag_name"].get<std::string>() != inst::config::appVersion) {
-                std::string downloadUrl;
-                if (ourJson.contains("assets") && ourJson["assets"].is_array() && !ourJson["assets"].empty()
-                    && ourJson["assets"][0].contains("browser_download_url") && ourJson["assets"][0]["browser_download_url"].is_string()) {
-                    downloadUrl = ourJson["assets"][0]["browser_download_url"].get<std::string>();
-                } else if (ourJson.contains("zipball_url") && ourJson["zipball_url"].is_string()) {
-                    downloadUrl = ourJson["zipball_url"].get<std::string>();
-                }
-
-                std::string releaseNotes = "No changelog available for this release.";
-                if (ourJson.contains("body") && ourJson["body"].is_string())
-                    releaseNotes = NormalizeReleaseNotes(ourJson["body"].get<std::string>());
-
-                std::vector<std::string> ourUpdateInfo = {
-                    ourJson["tag_name"].get<std::string>(),
-                    downloadUrl,
-                    releaseNotes
-                };
-                inst::config::updateInfo = ourUpdateInfo;
-                return ourUpdateInfo;
-            }
-        } catch (...) {}
-        return {};
+        inst::config::updateInfo.clear();
+        const auto check = inst::update::CheckForUpdate(inst::config::appVersion);
+        if (check.status != inst::update::CheckStatus::UpdateAvailable) return {};
+        std::vector<std::string> updateInfo = {
+            check.release.version,
+            check.release.nroUrl,
+            check.release.notes,
+            check.release.checksumsUrl
+        };
+        inst::config::updateInfo = updateInfo;
+        return updateInfo;
     }
 }

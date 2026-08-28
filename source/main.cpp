@@ -6,12 +6,14 @@
 #include "util/util.hpp"
 #include "util/config.hpp"
 #include "util/offline_db_update.hpp"
+#include "util/update.hpp"
 
 using namespace pu::ui::render;
 int main(int argc, char* argv[])
 {
     bool appInitialized = false;
     try {
+        inst::update::SetRunningNroPath((argc > 0 && argv != nullptr && argv[0] != nullptr) ? argv[0] : "");
         debugLogReset();
         inst::util::initApp();
         appInitialized = true;

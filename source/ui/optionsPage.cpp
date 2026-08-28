@@ -10,7 +10,8 @@
 #include "util/config.hpp"
 #include "util/curl.hpp"
 #include "util/offline_db_update.hpp"
-#include "util/unzip.hpp"
+#include "util/update.hpp"
+#include "util/diagnostics.hpp"
 #include "util/lang.hpp"
 #include "ui/instPage.hpp"
 #include "remoteInstall.hpp"
@@ -387,45 +388,53 @@ namespace inst::ui {
     }
 
     void optionsPage::askToUpdate(std::vector<std::string> updateInfo) {
-            const std::string version = updateInfo.empty() ? std::string() : updateInfo[0];
-            const std::string downloadUrl = updateInfo.size() > 1 ? updateInfo[1] : std::string();
-            const std::string releaseNotes = updateInfo.size() > 2 ? updateInfo[2] : "No changelog available for this release.";
+        if (updateInfo.size() < 4) {
+            mainApp->CreateShowDialog("Update unavailable", "Update metadata is incomplete. Check again later.", {"common.ok"_lang}, true);
+            return;
+        }
+        inst::update::ReleaseInfo release;
+        release.version = updateInfo[0];
+        release.nroUrl = updateInfo[1];
+        release.notes = updateInfo[2].empty() ? "No changelog available for this release." : updateInfo[2];
+        release.checksumsUrl = updateInfo[3];
+        while (true) {
+            const std::string body = "Current: v" + inst::config::appVersion + "
+Latest: " + release.version +
+                "
 
-            while (true) {
-                int choice = mainApp->CreateShowDialog(
-                    "options.update.title"_lang,
-                    "options.update.desc0"_lang + version + "options.update.desc1"_lang,
-                    {"options.update.opt0"_lang, "View Changelog", "common.cancel"_lang},
-                    false);
-
-                if (choice == 1) {
-                    ShowPagedTextDialog("Changelog " + version, releaseNotes);
-                    continue;
-                }
-
-                if (choice != 0)
-                    break;
-
-                inst::ui::instPage::loadInstallScreen();
-                inst::ui::instPage::setTopInstInfoText("options.update.top_info"_lang + version);
-                inst::ui::instPage::setInstBarPerc(0);
-                inst::ui::instPage::setInstInfoText("options.update.bot_info"_lang + version);
-                try {
-                    std::string downloadName = inst::config::appDir + "/temp_download.zip";
-                    inst::curl::downloadFile(downloadUrl, downloadName.c_str(), 0, true);
-                    romfsExit();
-                    inst::ui::instPage::setInstInfoText("options.update.bot_info2"_lang + version);
-                    inst::zip::extractFile(downloadName, "sdmc:/");
-                    std::filesystem::remove(downloadName);
-                    mainApp->CreateShowDialog("options.update.complete"_lang, "options.update.end_desc"_lang, {"common.ok"_lang}, false);
-                } catch (...) {
-                    mainApp->CreateShowDialog("options.update.failed"_lang, "options.update.end_desc"_lang, {"common.ok"_lang}, false);
-                }
-                mainApp->FadeOut();
-                mainApp->Close();
+A verified update is available from the official PersonaFoil GitHub Release.";
+            const int choice = mainApp->CreateShowDialog("PersonaFoil update", body,
+                {"Download & Install", "View Changelog", "common.cancel"_lang}, false);
+            if (choice == 1) {
+                ShowPagedTextDialog("Changelog " + release.version, release.notes);
+                continue;
+            }
+            if (choice != 0) break;
+            inst::ui::instPage::loadInstallScreen();
+            inst::ui::instPage::setTopInstInfoText("Updating PersonaFoil to " + release.version);
+            inst::ui::instPage::setInstBarPerc(0);
+            inst::ui::instPage::setInstInfoText("Preparing verified update...");
+            const auto install = inst::update::InstallUpdate(release,
+                [](const std::string& stage, double percent) {
+                    inst::ui::instPage::setInstInfoText(stage);
+                    inst::ui::instPage::setInstBarPerc(percent);
+                });
+            mainApp->LoadLayout(mainApp->optionspage);
+            if (!install.success) {
+                mainApp->CreateShowDialog("Update failed", install.error, {"common.ok"_lang}, true);
                 break;
             }
-        return;
+            std::string done = "PersonaFoil " + release.version + " installed successfully.
+
+Exit and relaunch PersonaFoil to use the new version.";
+            if (!install.backupPath.empty()) done += "
+
+Previous NRO backup: " + install.backupPath;
+            mainApp->CreateShowDialog("Update complete", done, {"common.ok"_lang}, false);
+            mainApp->FadeOut();
+            mainApp->Close();
+            break;
+        }
     }
 
     std::string optionsPage::getMenuOptionIcon(bool ourBool) {
@@ -513,7 +522,7 @@ namespace inst::ui {
             const std::string activeId = inst::identity::GetActivePersonaId();
             addItem("Current identity: " + inst::identity::GetActiveIdentityName(), false, false);
             addItem("UID fingerprint: " + inst::identity::FormatUidFingerprint(inst::identity::GetActiveUid()), false, false);
-            addItem("Native Switch" + std::string(activeId == inst::identity::kNativeIdentityId ? "  (Active)" : ""), false, false);
+            addItem(activeId == inst::identity::kNativeIdentityId ? "Native Switch  (Active)" : "Use Native Switch", false, false);
             for (const auto& persona : personas) {
                 std::string label = persona.name;
                 if (persona.id == activeId)
@@ -521,7 +530,8 @@ namespace inst::ui {
                 label += "  " + inst::identity::FormatUidFingerprint(inst::identity::ComputeUidFromIdentityBytes(persona.seed));
                 addItem(label, false, false);
             }
-            addItem("Create new persona", false, false);
+            addItem("New Identity", false, false);
+            addItem("Export Diagnostic Report", false, false);
             addItem("Diagnostics (" + std::to_string(personas.size()) + " personas)", false, false);
             return;
         }
@@ -582,28 +592,32 @@ namespace inst::ui {
     void optionsPage::createPersona() {
         const std::string defaultName = inst::identity::NextDefaultPersonaName();
         const int confirm = mainApp->CreateShowDialog(
-            "Create persona?",
-            "Generate a persistent local identity named " + defaultName + "?\n\nIts random seed stays on this SD card.",
-            {"Create", "common.cancel"_lang},
-            false);
-        if (confirm != 0)
-            return;
+            "New Identity",
+            "Create and activate a persistent local identity named " + defaultName + "?
 
-        std::string createdId;
+Its random seed stays on this SD card.",
+            {"Create & Activate", "common.cancel"_lang}, false);
+        if (confirm != 0) return;
         std::string error;
-        if (!inst::identity::CreatePersona(defaultName, false, &createdId, &error)) {
-            mainApp->CreateShowDialog("Could not create persona", error, {"common.ok"_lang}, true);
+        if (!inst::identity::CreatePersona(defaultName, true, nullptr, &error)) {
+            mainApp->CreateShowDialog("Could not create identity", error, {"common.ok"_lang}, true);
             return;
         }
-
-        const int activate = mainApp->CreateShowDialog(
-            "Persona created",
-            defaultName + " is saved. Activate it now?",
-            {"Activate", "Later"},
-            false);
-        if (activate == 0 && !inst::identity::ActivatePersona(createdId, &error))
-            mainApp->CreateShowDialog("Could not activate persona", error, {"common.ok"_lang}, true);
         this->refreshOptions();
+        const std::string fingerprint = inst::identity::FormatUidFingerprint(inst::identity::GetActiveUid());
+        mainApp->CreateShowDialog("Identity activated", defaultName + " is now active.
+UID: " + fingerprint,
+            {"common.ok"_lang}, false);
+    }
+
+    void optionsPage::exportDiagnosticReport() {
+        std::string path;
+        std::string error;
+        if (!inst::diagnostics::ExportDiagnosticReport(&path, &error)) {
+            mainApp->CreateShowDialog("Diagnostic export failed", error, {"common.ok"_lang}, true);
+            return;
+        }
+        mainApp->CreateShowDialog("Diagnostic report exported", path, {"common.ok"_lang}, false);
     }
 
     void optionsPage::managePersona(const inst::identity::Persona& persona) {
@@ -1116,7 +1130,6 @@ namespace inst::ui {
             }
             std::string keyboardResult;
             int rc;
-            std::vector<std::string> downloadUrl;
             std::vector<std::string> languageList;
             int selectedIndex = this->menu->GetSelectedIndex();
             if (this->selectedSection == 0) {
@@ -1146,6 +1159,10 @@ namespace inst::ui {
                     return;
                 }
                 if (selectedIndex == static_cast<int>(personas.size()) + 4) {
+                    this->exportDiagnosticReport();
+                    return;
+                }
+                if (selectedIndex == static_cast<int>(personas.size()) + 5) {
                     this->showIdentityDiagnostics();
                     return;
                 }
@@ -1495,18 +1512,23 @@ namespace inst::ui {
                     mainApp->FadeOut();
                     mainApp->Close();
                     break;
-                case 17:
+                case 17: {
                     if (inst::util::getIPAddress() == "1.0.0.127") {
                         inst::ui::mainApp->CreateShowDialog("main.net.title"_lang, "main.net.desc"_lang, {"common.ok"_lang}, true);
                         break;
                     }
-                    downloadUrl = inst::util::checkForAppUpdate();
-                    if (!downloadUrl.size()) {
-                        mainApp->CreateShowDialog("options.update.title_check_fail"_lang, "options.update.desc_check_fail"_lang, {"common.ok"_lang}, false);
+                    const auto check = inst::update::CheckForUpdate(inst::config::appVersion);
+                    if (check.status == inst::update::CheckStatus::Error) {
+                        mainApp->CreateShowDialog("Update check failed", check.error.empty() ? "Could not check PersonaFoil releases." : check.error, {"common.ok"_lang}, true);
                         break;
                     }
-                    this->askToUpdate(downloadUrl);
+                    if (check.status == inst::update::CheckStatus::UpToDate) {
+                        mainApp->CreateShowDialog("PersonaFoil is up to date", "Current version: v" + inst::config::appVersion, {"common.ok"_lang}, false);
+                        break;
+                    }
+                    this->askToUpdate({check.release.version, check.release.nroUrl, check.release.notes, check.release.checksumsUrl});
                     break;
+                }
                 case 18:
                     inst::ui::mainApp->CreateShowDialog("options.credits.title"_lang, "options.credits.desc"_lang, {"common.close"_lang}, true);
                     break;

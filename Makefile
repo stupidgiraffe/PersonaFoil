@@ -220,11 +220,14 @@ endif
 
 HOST_CXX ?= g++
 HOST_TEST_BIN := build-host/identity_tests
+HOST_UPDATE_TEST_BIN := build-host/update_core_tests
 
 host-test:
 	@mkdir -p build-host
 	$(HOST_CXX) -std=c++20 -Wall -Wextra -Werror -Iinclude tests/identity_tests.cpp source/identity/identity_core.cpp -lcrypto -o $(HOST_TEST_BIN)
 	./$(HOST_TEST_BIN)
+	$(HOST_CXX) -std=c++20 -Wall -Wextra -Werror -Iinclude tests/update_core_tests.cpp source/util/update_core.cpp -o $(HOST_UPDATE_TEST_BIN)
+	./$(HOST_UPDATE_TEST_BIN)
 
 #---------------------------------------------------------------------------------
 all: $(BUILD)

@@ -84,6 +84,7 @@ namespace inst::ui {
             void saveRemoteForm();
             void managePersona(const inst::identity::Persona& persona);
             void createPersona();
+            void exportDiagnosticReport();
             void showIdentityDiagnostics();
             void rememberCurrentSectionMenuIndex();
             void restoreSelectedSectionMenuIndex();
