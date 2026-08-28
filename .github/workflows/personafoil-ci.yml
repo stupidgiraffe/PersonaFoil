@@ -18,7 +18,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run identity tests
+      - name: Run identity and updater tests
         run: make host-test
 
   build:
@@ -58,6 +58,9 @@ jobs:
                       archive.write(path, os.path.relpath(path, "dist"))
           PY
           python3 -m zipfile --list personafoil.zip
+          sha256sum personafoil.nro personafoil.zip > SHA256SUMS.txt
+          grep -Eq "^[0-9a-f]{64}  personafoil\.nro$" SHA256SUMS.txt
+          grep -Eq "^[0-9a-f]{64}  personafoil\.zip$" SHA256SUMS.txt
 
       - name: Upload PersonaFoil artifacts
         uses: actions/upload-artifact@v4
@@ -66,4 +69,5 @@ jobs:
           path: |
             personafoil.nro
             personafoil.zip
+            SHA256SUMS.txt
           if-no-files-found: error
