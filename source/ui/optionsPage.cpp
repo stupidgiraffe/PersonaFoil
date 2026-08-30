@@ -398,11 +398,8 @@ namespace inst::ui {
         release.notes = updateInfo[2].empty() ? "No changelog available for this release." : updateInfo[2];
         release.checksumsUrl = updateInfo[3];
         while (true) {
-            const std::string body = "Current: v" + inst::config::appVersion + "
-Latest: " + release.version +
-                "
-
-A verified update is available from the official PersonaFoil GitHub Release.";
+            const std::string body = "Current: v" + inst::config::appVersion + "\nLatest: " + release.version +
+                "\n\nA verified update is available from the official PersonaFoil GitHub Release.";
             const int choice = mainApp->CreateShowDialog("PersonaFoil update", body,
                 {"Download & Install", "View Changelog", "common.cancel"_lang}, false);
             if (choice == 1) {
@@ -424,12 +421,8 @@ A verified update is available from the official PersonaFoil GitHub Release.";
                 mainApp->CreateShowDialog("Update failed", install.error, {"common.ok"_lang}, true);
                 break;
             }
-            std::string done = "PersonaFoil " + release.version + " installed successfully.
-
-Exit and relaunch PersonaFoil to use the new version.";
-            if (!install.backupPath.empty()) done += "
-
-Previous NRO backup: " + install.backupPath;
+            std::string done = "PersonaFoil " + release.version + " installed successfully.\n\nExit and relaunch PersonaFoil to use the new version.";
+            if (!install.backupPath.empty()) done += "\n\nPrevious NRO backup: " + install.backupPath;
             mainApp->CreateShowDialog("Update complete", done, {"common.ok"_lang}, false);
             mainApp->FadeOut();
             mainApp->Close();
@@ -593,9 +586,7 @@ Previous NRO backup: " + install.backupPath;
         const std::string defaultName = inst::identity::NextDefaultPersonaName();
         const int confirm = mainApp->CreateShowDialog(
             "New Identity",
-            "Create and activate a persistent local identity named " + defaultName + "?
-
-Its random seed stays on this SD card.",
+            "Create and activate a persistent local identity named " + defaultName + "?\n\nIts random seed stays on this SD card.",
             {"Create & Activate", "common.cancel"_lang}, false);
         if (confirm != 0) return;
         std::string error;
@@ -605,8 +596,7 @@ Its random seed stays on this SD card.",
         }
         this->refreshOptions();
         const std::string fingerprint = inst::identity::FormatUidFingerprint(inst::identity::GetActiveUid());
-        mainApp->CreateShowDialog("Identity activated", defaultName + " is now active.
-UID: " + fingerprint,
+        mainApp->CreateShowDialog("Identity activated", defaultName + " is now active.\nUID: " + fingerprint,
             {"common.ok"_lang}, false);
     }
 
