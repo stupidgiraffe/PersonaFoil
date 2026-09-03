@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/personafoil-logo.png" alt="PersonaFoil" width="520">
+  <img src="romfs/images/personafoil-logo.png" alt="PersonaFoil" width="520">
 </p>
 
 <h1 align="center">PersonaFoil</h1>
@@ -147,10 +147,6 @@ If PersonaFoil is useful to you, you can support continued development:
 
 <p align="center">
   <a href="https://buymeacoffee.com/stupidgiraffe"><strong>☕ Buy Me a Coffee</strong></a>
-</p>
-
-<p align="center">
-  <a href="https://buymeacoffee.com/stupidgiraffe"><img src="docs/assets/buy-me-a-coffee-qr.png" alt="Buy Me a Coffee QR code" width="300"></a>
 </p>
 
 ## Credits and license
