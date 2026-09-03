@@ -1,0 +1,49 @@
+name: Compatibility report
+description: Share real-hardware PersonaFoil compatibility results
+title: "[Compatibility]: "
+labels: [compatibility]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include physical CID, persona seeds, passwords, tokens, Authorization headers, or private Remote credentials.
+  - type: input
+    id: version
+    attributes:
+      label: PersonaFoil version
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Switch firmware
+    validations:
+      required: true
+  - type: input
+    id: atmosphere
+    attributes:
+      label: Atmosphere version
+  - type: dropdown
+    id: create
+    attributes:
+      label: New Identity creation works?
+      options: [Yes, No, Not tested]
+    validations:
+      required: true
+  - type: dropdown
+    id: persistence
+    attributes:
+      label: Persona persists after restart?
+      options: [Yes, No, Not tested]
+    validations:
+      required: true
+  - type: dropdown
+    id: updater
+    attributes:
+      label: In-app updater works?
+      options: [Yes, No, Not tested]
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes

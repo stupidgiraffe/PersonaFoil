@@ -20,7 +20,7 @@
 namespace inst::mtp {
 namespace {
 
-constexpr const char* kAlbumTracePath = "sdmc:/switch/CyberFoil/mtp_album_debug.log";
+constexpr const char* kAlbumTracePath = "sdmc:/switch/PersonaFoil/mtp_album_debug.log";
 std::mutex g_album_trace_mutex;
 std::atomic<u64> g_album_trace_count{0};
 constexpr u64 kAlbumTraceMaxLines = 20000;

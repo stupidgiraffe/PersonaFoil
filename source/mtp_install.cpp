@@ -57,8 +57,8 @@ std::atomic<u64> g_stream_trace_count{0};
 std::atomic<u64> g_stream_write_calls{0};
 std::atomic<bool> g_stream_trace_enabled{false};
 constexpr u64 kStreamTraceMaxLines = 60000;
-constexpr const char* kStreamTracePath = "sdmc:/switch/CyberFoil/mtp_install_debug.log";
-constexpr const char* kStreamTraceEnablePath = "sdmc:/switch/CyberFoil/mtp_install_debug.enable";
+constexpr const char* kStreamTracePath = "sdmc:/switch/PersonaFoil/mtp_install_debug.log";
+constexpr const char* kStreamTraceEnablePath = "sdmc:/switch/PersonaFoil/mtp_install_debug.enable";
 
 bool IsStreamTraceEnabled() {
     return g_stream_trace_enabled.load(std::memory_order_relaxed);

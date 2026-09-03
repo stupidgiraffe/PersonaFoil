@@ -33,7 +33,7 @@
     },
     "applet": {
       "title": "Applet Mode non è supportata",
-      "desc": "Puoi incontrare problemi utilizzando CyberFoil in Applet Mode. Se\nriscontri problemi, ti prego di utilizzare CyberFoil avviandolo attraverso un gioco\ngià installato (tieni premuto R mentre avvii un gioco)!"
+      "desc": "Puoi incontrare problemi utilizzando PersonaFoil in Applet Mode. Se\nriscontri problemi, ti prego di utilizzare PersonaFoil avviandolo attraverso un gioco\ngià installato (tieni premuto R mentre avvii un gioco)!"
     },
     "buttons": " Seleziona     Esci",
     "info": {
@@ -45,16 +45,16 @@
       "usb": "Installa via USB con strumenti come NS-USBloader.",
       "net": "Installa file da fonti LAN o internet.",
       "sig": "Installa, aggiorna o rimuovi le signature patch.",
-      "set": "Modifica le preferenze di CyberFoil e le impostazioni di Remote.",
-      "backup": "Esegue con una sola azione il backup di tutti i dati di salvataggio locali dell'utente selezionato sul server Remote configurato.\n\nCome funziona:\n1. Se ci sono più utenti, scegli prima quale account salvare.\n2. Se non è configurato un Remote, CyberFoil prova i profili salvati e poi chiede un URL Remote.\n3. Inserisci una nota di backup (obbligatoria).\n4. CyberFoil analizza i salvataggi locali di quell'utente e carica ogni voce sul server.\n5. Viene mostrato l'avanzamento durante scansione e upload.\n6. Un riepilogo finale mostra successi ed errori.",
-      "exit": "Chiudi CyberFoil e torna al menu HOME."
+      "set": "Modifica le preferenze di PersonaFoil e le impostazioni di Remote.",
+      "backup": "Esegue con una sola azione il backup di tutti i dati di salvataggio locali dell'utente selezionato sul server Remote configurato.\n\nCome funziona:\n1. Se ci sono più utenti, scegli prima quale account salvare.\n2. Se non è configurato un Remote, PersonaFoil prova i profili salvati e poi chiede un URL Remote.\n3. Inserisci una nota di backup (obbligatoria).\n4. PersonaFoil analizza i salvataggi locali di quell'utente e carica ogni voce sul server.\n5. Viene mostrato l'avanzamento durante scansione e upload.\n6. Un riepilogo finale mostra successi ed errori.",
+      "exit": "Chiudi PersonaFoil e torna al menu HOME."
     }
   },
   "inst": {
     "net": {
       "help": {
         "title": "Aiuto",
-        "desc": "I file possono essere installati via remoto da altri dispositivi utilizzando programmi come\nNS-USBloader in modialità \"Tinfoil\". Per inviare file, apri uno\ndi questi software sul tuo PC o sul tuo smartphone, inserisci\nl'indirizzo IP (mostrato sullo schermo), seleziona i file e poi inviali alla\nconsole! Se il software che usi non ti permette di selezionare file\nspecifici, prova a cambiare l'estensione del file in qualcosa che venga accettato dal software.\nCyberFoil non legge l'estensione del file durante l'installazione via internet!\n\nSe proprio non riesci, copia i file nella SD e seleziona\nl'opzione \"Installa dalla SD\" dal menù principale!"
+        "desc": "I file possono essere installati via remoto da altri dispositivi utilizzando programmi come\nNS-USBloader in modialità \"Tinfoil\". Per inviare file, apri uno\ndi questi software sul tuo PC o sul tuo smartphone, inserisci\nl'indirizzo IP (mostrato sullo schermo), seleziona i file e poi inviali alla\nconsole! Se il software che usi non ti permette di selezionare file\nspecifici, prova a cambiare l'estensione del file in qualcosa che venga accettato dal software.\nPersonaFoil non legge l'estensione del file durante l'installazione via internet!\n\nSe proprio non riesci, copia i file nella SD e seleziona\nl'opzione \"Installa dalla SD\" dal menù principale!"
       },
       "src": {
         "title": "Da dove vuoi installare?",
@@ -211,7 +211,7 @@
     },
     "nca_verify": {
       "title": "Rilevata firma NCA non valida!",
-      "desc": "Software firmati impropriamente dovrebbero essere installati solo da fonti\nsicure. I file che contengono repack di cartucce e DLC mostreranno sempre\nquesto avviso. Puoi disabilitarlo dalle impostazioni di CyberFoil.\n\nSei sicuro di voler continuare l'installazione?",
+      "desc": "Software firmati impropriamente dovrebbero essere installati solo da fonti\nsicure. I file che contengono repack di cartucce e DLC mostreranno sempre\nquesto avviso. Puoi disabilitarlo dalle impostazioni di PersonaFoil.\n\nSei sicuro di voler continuare l'installazione?",
       "opt1": "Sì, comprendo il rischio",
       "error": "Il file NCA seguente non è firmato correttamente: "
     },
@@ -235,7 +235,7 @@
     "backup_failed": "Non è stato possibile effettuare il backup del file \"patches.ini\" di Hekate! Installare comunque?",
     "backup_failed_desc": "Se non usi Hekate puoi ignorare questo avviso.",
     "download_failed": "Non è stato possibile scaricare le SigPatches",
-    "download_failed_desc": "Puoi aver utilizzato una fonte non valida nelle impostazioni di CyberFoil,\no la fonte potrebbe non essere raggiungibile al momento.",
+    "download_failed_desc": "Puoi aver utilizzato una fonte non valida nelle impostazioni di PersonaFoil,\no la fonte potrebbe non essere raggiungibile al momento.",
     "version_text2": "Le SigPatches sono state aggiornate per la versione corrente di HOS ",
     "install_complete": "Installazione completata!",
     "complete_desc": "Riavvia la console per applicare i cambiamenti",
@@ -254,7 +254,7 @@
       "nca_verify": "Verifica le firme NCA prima dell'installazione",
       "boost_mode": "Abilita la \"boost mode\" durante le installazioni",
       "ask_delete": "Chiedi di cancellare i file originale dopo l'installazione",
-      "auto_update": "Controlla aggiornamenti di CyberFoil automaticamente",
+      "auto_update": "Controlla aggiornamenti di PersonaFoil automaticamente",
       "gay_option": "Rimuovi anime",
       "sig_url": "Fonte URL SigPatches: ",
       "remote_url": "URL Remote: ",
@@ -266,7 +266,7 @@
       "remote_start_grid_mode": "Avvia Remote in modalità griglia",
       "remote_reset_icons": "Reimposta la cache delle icone di Remote",
       "language": "Lingua: ",
-      "check_update": "Controlla aggiornamenti di CyberFoil ora",
+      "check_update": "Controlla aggiornamenti di PersonaFoil ora",
       "credits": "Crediti",
       "sound": "Abilita i suoni",
       "oled": "Abilita la modalità OLED",
@@ -290,28 +290,28 @@
     },
     "update": {
       "title": "Aggiornamento disponibile",
-      "desc0": "CyberFoil ",
+      "desc0": "PersonaFoil ",
       "desc1": " è disponibile adesso! Pronto per aggiornare?",
       "opt0": "Aggiorna",
-      "top_info": "Aggiornamento ad CyberFoil ",
-      "bot_info": "Sto scaricando CyberFoil ",
-      "bot_info2": "Sto estraendo CyberFoil ",
+      "top_info": "Aggiornamento ad PersonaFoil ",
+      "bot_info": "Sto scaricando PersonaFoil ",
+      "bot_info2": "Sto estraendo PersonaFoil ",
       "complete": "Aggiornamento completato!",
       "failed": "Aggiornamento fallito!",
       "end_desc": "Il software verrà chiuso.",
       "title_check_fail": "Nessun aggiornamento disponibile",
-      "desc_check_fail": "Stai usando l'ultima versione di CyberFoil!"
+      "desc_check_fail": "Stai usando l'ultima versione di PersonaFoil!"
     },
     "credits": {
       "title": "Un ringraziamento alle seguenti persone!",
       "desc": "- HookedBehemoth per UN SACCO di contributi\n- Adubbz ed altra gente for Tinfoil\n- XorTroll per Plutonium e Goldleaf\n- blawar (strangolatore di moglie) e nicoboss per il supporto ai file NSZ\n- I ragazzi del team e discord AtlasNX (o almeno alcuni di loro)\n- I ragazzi del team e discord RetroNX (di nessun coinvolgimento diretto)\n- namako8982 per l'immagine di Momiji\n- TheXzoron per essere un baka"
     },
     "language": {
-      "title": "Seleziona la lingua di CyberFoil",
+      "title": "Seleziona la lingua di PersonaFoil",
       "desc": "Il software verrà chiuso dopo aver cambiato la lingua. Premi B per annullare.",
       "system_language": "Default di sistema"
     },
-    "title": "Cambia le impostazioni di CyberFoil!",
+    "title": "Cambia le impostazioni di PersonaFoil!",
     "buttons": " Seleziona/Cambia     Annulla"
   },
   "common": {

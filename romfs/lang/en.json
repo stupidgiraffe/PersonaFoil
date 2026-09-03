@@ -33,7 +33,7 @@
         },
         "applet": {
             "title": "Applet Mode not supported",
-            "desc": "You may experience issues using CyberFoil in Applet Mode. If you do\nhave problems, please switch to running CyberFoil over an installed\ntitle (hold R while starting a game)!"
+            "desc": "You may experience issues using PersonaFoil in Applet Mode. If you do\nhave problems, please switch to running PersonaFoil over an installed\ntitle (hold R while starting a game)!"
         },
         "buttons": " Select     Exit",
         "info": {
@@ -45,16 +45,16 @@
             "usb": "Install over USB from tools like NS-USBloader.",
             "net": "Install files from LAN or internet sources.",
             "sig": "Install, update, or remove signature patches.",
-            "set": "Change CyberFoil preferences and Remote settings.",
-            "backup": "Uploads all local save data for the selected user to your configured Remote server in one action.\n\nHow it works:\n1. If multiple users exist, choose which account to back up.\n2. If no Remote is configured, CyberFoil tries saved Remote profiles first, then asks for a Remote URL.\n3. Enter a backup note (required).\n4. CyberFoil scans that user's local saves and uploads each one to the server.\n5. Progress is shown during scan and upload.\n6. A final summary reports uploaded and failed saves.",
-            "exit": "Close CyberFoil and return to HOME."
+            "set": "Change PersonaFoil preferences and Remote settings.",
+            "backup": "Uploads all local save data for the selected user to your configured Remote server in one action.\n\nHow it works:\n1. If multiple users exist, choose which account to back up.\n2. If no Remote is configured, PersonaFoil tries saved Remote profiles first, then asks for a Remote URL.\n3. Enter a backup note (required).\n4. PersonaFoil scans that user's local saves and uploads each one to the server.\n5. Progress is shown during scan and upload.\n6. A final summary reports uploaded and failed saves.",
+            "exit": "Close PersonaFoil and return to HOME."
         }
     },
     "inst": {
         "net": {
             "help": {
                 "title": "Help",
-                "desc": "Files can be installed remotely from your other devices using tools such\nas NS-USBloader in Tinfoil mode. To send files to your Switch, open one\nof these pieces of software on your PC or mobile device, input your\nSwitch's IP address (listed on-screen), select your files, then upload\nto your console! If the software you're using won't let you select\nspecific file types, try renaming the extension to something it accepts.\nCyberFoil doesn't care about file extensions during net installations!\n\nIf you can't figure it out, just copy your files to your SD card and try\nthe \"Install from SD Card\" option on the main menu!"
+                "desc": "Files can be installed remotely from your other devices using tools such\nas NS-USBloader in Tinfoil mode. To send files to your Switch, open one\nof these pieces of software on your PC or mobile device, input your\nSwitch's IP address (listed on-screen), select your files, then upload\nto your console! If the software you're using won't let you select\nspecific file types, try renaming the extension to something it accepts.\nPersonaFoil doesn't care about file extensions during net installations!\n\nIf you can't figure it out, just copy your files to your SD card and try\nthe \"Install from SD Card\" option on the main menu!"
             },
             "src": {
                 "title": "Where do you want to install from?",
@@ -217,7 +217,7 @@
         },
         "nca_verify": {
             "title": "Invalid NCA signature detected!",
-            "desc": "Improperly signed software should only be installed from trustworthy\nsources. Files containing cartridge repacks and DLC unlockers will always\nshow this warning. You can disable this check in CyberFoil's settings.\n\nAre you sure you want to continue the installation?",
+            "desc": "Improperly signed software should only be installed from trustworthy\nsources. Files containing cartridge repacks and DLC unlockers will always\nshow this warning. You can disable this check in PersonaFoil's settings.\n\nAre you sure you want to continue the installation?",
             "opt1": "Yes, I understand the risks",
             "error": "The requested NCA is not properly signed: "
         },
@@ -241,7 +241,7 @@
         "backup_failed": "Could not back up Hekate patches.ini! Install anyway?",
         "backup_failed_desc": "If you don't use Hekate you can ignore this warning.",
         "download_failed": "Could not download signature patches",
-        "download_failed_desc": "You may have supplied an invalid source in CyberFoil's settings,\nor the host may just be down right now.",
+        "download_failed_desc": "You may have supplied an invalid source in PersonaFoil's settings,\nor the host may just be down right now.",
         "version_text2": "Your signature patches have been updated for up to HOS version ",
         "install_complete": "Install complete!",
         "complete_desc": "Restart your console to apply",
@@ -260,7 +260,7 @@
             "nca_verify": "Verify NCA signatures before installation",
             "boost_mode": "Enable \"boost mode\" during installations",
             "ask_delete": "Ask to delete original files after installation",
-            "auto_update": "Check for updates to CyberFoil automatically",
+            "auto_update": "Check for updates to PersonaFoil automatically",
             "gay_option": "Remove anime",
             "sig_url": "Signature patches source URL: ",
             "remote_url": "Remote URL: ",
@@ -272,7 +272,7 @@
             "remote_start_grid_mode": "Start Remote in grid mode",
             "remote_reset_icons": "Reset Remote icon cache",
             "language": "Language: ",
-            "check_update": "Check for updates to CyberFoil",
+            "check_update": "Check for updates to PersonaFoil",
             "credits": "Credits",
             "sound": "Enable sounds",
             "oled": "Enable OLED mode",
@@ -296,28 +296,28 @@
         },
         "update": {
             "title": "Update available",
-            "desc0": "CyberFoil ",
+            "desc0": "PersonaFoil ",
             "desc1": " is available now! Ready to update?",
             "opt0": "Update",
-            "top_info": "Updating to CyberFoil ",
-            "bot_info": "Downloading CyberFoil ",
-            "bot_info2": "Extracting CyberFoil ",
+            "top_info": "Updating to PersonaFoil ",
+            "bot_info": "Downloading PersonaFoil ",
+            "bot_info2": "Extracting PersonaFoil ",
             "complete": "Update complete!",
             "failed": "Update failed!",
             "end_desc": "The software will now be closed.",
             "title_check_fail": "No updates found",
-            "desc_check_fail": "You are on the latest version of CyberFoil!"
+            "desc_check_fail": "You are on the latest version of PersonaFoil!"
         },
         "credits": {
             "title": "Thanks to the following people!",
-            "desc": "- Huntereb for Awoo Installer\n- ITotalJustice for Sphaira\n- XorTroll for Plutonium\n- Atmosphere Team for libhaze\n- DarkMatterCore for libusbhsfs\n- The Homebrew community for all their hard work and dedication\n- You, for using CyberFoil!"
+            "desc": "- Huntereb for Awoo Installer\n- ITotalJustice for Sphaira\n- XorTroll for Plutonium\n- Atmosphere Team for libhaze\n- DarkMatterCore for libusbhsfs\n- The Homebrew community for all their hard work and dedication\n- You, for using PersonaFoil!"
         },
         "language": {
-            "title": "Select CyberFoil's language",
+            "title": "Select PersonaFoil's language",
             "desc": "The software will be closed after changing languages. Press B to cancel.",
             "system_language": "System"
         },
-        "title": "Change CyberFoil's settings!",
+        "title": "Change PersonaFoil's settings!",
         "buttons": " Select/Change     Cancel"
     },
     "common": {

@@ -1,0 +1,73 @@
+name: PersonaFoil CI
+
+on:
+  push:
+    branches:
+      - master
+      - development
+      - feature/persona-identity
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  host-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run identity and updater tests
+        run: make host-test
+
+  build:
+    needs: host-tests
+    runs-on: ubuntu-latest
+    container:
+      image: devkitpro/devkita64:latest
+
+    steps:
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Switch port libraries
+        run: dkp-pacman -S --noconfirm --needed switch-ntfs-3g switch-lwext4
+
+      - name: Build release NRO
+        run: make -j"$(nproc)" RELEASE=1
+
+      - name: Verify and package SD layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s personafoil.nro
+          mkdir -p dist/switch/PersonaFoil
+          cp personafoil.nro dist/switch/PersonaFoil/personafoil.nro
+          python3 - <<'PY'
+          import os
+          import zipfile
+
+          with zipfile.ZipFile("personafoil.zip", "w", zipfile.ZIP_DEFLATED) as archive:
+              for root, _, files in os.walk("dist"):
+                  for name in files:
+                      path = os.path.join(root, name)
+                      archive.write(path, os.path.relpath(path, "dist"))
+          PY
+          python3 -m zipfile --list personafoil.zip
+          sha256sum personafoil.nro personafoil.zip > SHA256SUMS.txt
+          grep -Eq "^[0-9a-f]{64}  personafoil\.nro$" SHA256SUMS.txt
+          grep -Eq "^[0-9a-f]{64}  personafoil\.zip$" SHA256SUMS.txt
+
+      - name: Upload PersonaFoil artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: PersonaFoil-${{ github.sha }}
+          path: |
+            personafoil.nro
+            personafoil.zip
+            SHA256SUMS.txt
+          if-no-files-found: error

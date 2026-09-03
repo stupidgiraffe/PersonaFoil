@@ -10,11 +10,13 @@
 #include "util/config.hpp"
 #include "util/curl.hpp"
 #include "util/offline_db_update.hpp"
-#include "util/unzip.hpp"
+#include "util/update.hpp"
+#include "util/diagnostics.hpp"
 #include "util/lang.hpp"
 #include "ui/instPage.hpp"
 #include "remoteInstall.hpp"
 #include "ui/bottomHint.hpp"
+#include "identity/identity.hpp"
 
 #define COLOR(hex) pu::ui::Color::FromHex(hex)
 
@@ -119,7 +121,7 @@ namespace inst::ui {
                 return "Firefox (Windows)";
             if (normalized == "custom")
                 return "Custom";
-            return "Default (CyberFoil)";
+            return "Default (CyberFoil compatibility)";
         }
 
         int GetUserAgentProfileChoiceIndex(const std::string& mode)
@@ -272,11 +274,11 @@ namespace inst::ui {
         this->botRect = Rectangle::New(0, 660, 1280, 60, botColor);
         this->sideNavRect = Rectangle::New(0, 136, 300, 523, inst::config::oledMode ? COLOR("#FFFFFF18") : COLOR("#170909A0"));
         if (inst::config::gayMode) {
-            this->titleImage = Image::New(-113, -8, "romfs:/images/logo.png");
+            this->titleImage = Image::New(-113, -8, "romfs:/images/personafoil-logo.png");
             this->appVersionText = TextBlock::New(367, 29, "v" + inst::config::appVersion + (inst::config::appGitMeta.empty() ? "" : ("\n" + inst::config::appGitMeta)), 22);
         }
         else {
-            this->titleImage = Image::New(0, -8, "romfs:/images/logo.png");
+            this->titleImage = Image::New(0, -8, "romfs:/images/personafoil-logo.png");
             this->appVersionText = TextBlock::New(480, 29, "v" + inst::config::appVersion + (inst::config::appGitMeta.empty() ? "" : ("\n" + inst::config::appGitMeta)), 22);
         }
         this->appVersionText->SetColor(COLOR("#FFFFFFFF"));
@@ -342,7 +344,7 @@ namespace inst::ui {
         this->Add(this->ipText);
         this->Add(this->butText);
         this->Add(this->pageInfoText);
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 4; i++) {
             auto sectionHighlight = Rectangle::New(30, 152 + (i * 56), 240, 48, COLOR("#FFFFFF00"), 10);
             this->sectionHighlights.push_back(sectionHighlight);
             this->Add(sectionHighlight);
@@ -386,45 +388,46 @@ namespace inst::ui {
     }
 
     void optionsPage::askToUpdate(std::vector<std::string> updateInfo) {
-            const std::string version = updateInfo.empty() ? std::string() : updateInfo[0];
-            const std::string downloadUrl = updateInfo.size() > 1 ? updateInfo[1] : std::string();
-            const std::string releaseNotes = updateInfo.size() > 2 ? updateInfo[2] : "No changelog available for this release.";
-
-            while (true) {
-                int choice = mainApp->CreateShowDialog(
-                    "options.update.title"_lang,
-                    "options.update.desc0"_lang + version + "options.update.desc1"_lang,
-                    {"options.update.opt0"_lang, "View Changelog", "common.cancel"_lang},
-                    false);
-
-                if (choice == 1) {
-                    ShowPagedTextDialog("Changelog " + version, releaseNotes);
-                    continue;
-                }
-
-                if (choice != 0)
-                    break;
-
-                inst::ui::instPage::loadInstallScreen();
-                inst::ui::instPage::setTopInstInfoText("options.update.top_info"_lang + version);
-                inst::ui::instPage::setInstBarPerc(0);
-                inst::ui::instPage::setInstInfoText("options.update.bot_info"_lang + version);
-                try {
-                    std::string downloadName = inst::config::appDir + "/temp_download.zip";
-                    inst::curl::downloadFile(downloadUrl, downloadName.c_str(), 0, true);
-                    romfsExit();
-                    inst::ui::instPage::setInstInfoText("options.update.bot_info2"_lang + version);
-                    inst::zip::extractFile(downloadName, "sdmc:/");
-                    std::filesystem::remove(downloadName);
-                    mainApp->CreateShowDialog("options.update.complete"_lang, "options.update.end_desc"_lang, {"common.ok"_lang}, false);
-                } catch (...) {
-                    mainApp->CreateShowDialog("options.update.failed"_lang, "options.update.end_desc"_lang, {"common.ok"_lang}, false);
-                }
-                mainApp->FadeOut();
-                mainApp->Close();
+        if (updateInfo.size() < 4) {
+            mainApp->CreateShowDialog("Update unavailable", "Update metadata is incomplete. Check again later.", {"common.ok"_lang}, true);
+            return;
+        }
+        inst::update::ReleaseInfo release;
+        release.version = updateInfo[0];
+        release.nroUrl = updateInfo[1];
+        release.notes = updateInfo[2].empty() ? "No changelog available for this release." : updateInfo[2];
+        release.checksumsUrl = updateInfo[3];
+        while (true) {
+            const std::string body = "Current: v" + inst::config::appVersion + "\nLatest: " + release.version +
+                "\n\nA verified update is available from the official PersonaFoil GitHub Release.";
+            const int choice = mainApp->CreateShowDialog("PersonaFoil update", body,
+                {"Download & Install", "View Changelog", "common.cancel"_lang}, false);
+            if (choice == 1) {
+                ShowPagedTextDialog("Changelog " + release.version, release.notes);
+                continue;
+            }
+            if (choice != 0) break;
+            inst::ui::instPage::loadInstallScreen();
+            inst::ui::instPage::setTopInstInfoText("Updating PersonaFoil to " + release.version);
+            inst::ui::instPage::setInstBarPerc(0);
+            inst::ui::instPage::setInstInfoText("Preparing verified update...");
+            const auto install = inst::update::InstallUpdate(release,
+                [](const std::string& stage, double percent) {
+                    inst::ui::instPage::setInstInfoText(stage);
+                    inst::ui::instPage::setInstBarPerc(percent);
+                });
+            mainApp->LoadLayout(mainApp->optionspage);
+            if (!install.success) {
+                mainApp->CreateShowDialog("Update failed", install.error, {"common.ok"_lang}, true);
                 break;
             }
-        return;
+            std::string done = "PersonaFoil " + release.version + " installed successfully.\n\nExit and relaunch PersonaFoil to use the new version.";
+            if (!install.backupPath.empty()) done += "\n\nPrevious NRO backup: " + install.backupPath;
+            mainApp->CreateShowDialog("Update complete", done, {"common.ok"_lang}, false);
+            mainApp->FadeOut();
+            mainApp->Close();
+            break;
+        }
     }
 
     std::string optionsPage::getMenuOptionIcon(bool ourBool) {
@@ -465,7 +468,7 @@ namespace inst::ui {
     }
 
     void optionsPage::setSectionNavText() {
-        static const std::vector<std::string> sectionLabels = {"General", "Remote", "System"};
+        static const std::vector<std::string> sectionLabels = {"General", "Identity", "Remote", "System"};
         for (size_t i = 0; i < this->sectionTexts.size() && i < sectionLabels.size(); i++) {
             const bool selected = static_cast<int>(i) == this->selectedSection;
             this->sectionHighlights[i]->SetColor(selected
@@ -508,6 +511,25 @@ namespace inst::ui {
         }
 
         if (this->selectedSection == 1) {
+            const auto personas = inst::identity::ListPersonas();
+            const std::string activeId = inst::identity::GetActivePersonaId();
+            addItem("Current identity: " + inst::identity::GetActiveIdentityName(), false, false);
+            addItem("UID fingerprint: " + inst::identity::FormatUidFingerprint(inst::identity::GetActiveUid()), false, false);
+            addItem(activeId == inst::identity::kNativeIdentityId ? "Native Switch  (Active)" : "Use Native Switch", false, false);
+            for (const auto& persona : personas) {
+                std::string label = persona.name;
+                if (persona.id == activeId)
+                    label += "  (Active)";
+                label += "  " + inst::identity::FormatUidFingerprint(inst::identity::ComputeUidFromIdentityBytes(persona.seed));
+                addItem(label, false, false);
+            }
+            addItem("New Identity", false, false);
+            addItem("Export Diagnostic Report", false, false);
+            addItem("Diagnostics (" + std::to_string(personas.size()) + " personas)", false, false);
+            return;
+        }
+
+        if (this->selectedSection == 2) {
             std::vector<inst::config::RemoteProfile> remotes = inst::config::LoadRemotes();
             std::string dbVersion = inst::offline::dbupdate::GetInstalledVersion();
             if (dbVersion.empty())
@@ -545,6 +567,79 @@ namespace inst::ui {
         this->setSectionNavText();
         this->setSettingsMenuText();
         if (resetSelection) this->menu->SetSelectedIndex(0);
+    }
+
+    void optionsPage::showIdentityDiagnostics() {
+        const auto personas = inst::identity::ListPersonas();
+        std::string body = "Application version: " + inst::config::appVersionFull;
+        body += "\nSchema version: " + std::to_string(inst::identity::kIdentitySchemaVersion);
+        body += "\nIdentity mode: " + std::string(inst::identity::IsNativeMode() ? "Native" : "Persona");
+        body += "\nActive identity: " + inst::identity::GetActiveIdentityName();
+        body += "\nUID fingerprint: " + inst::identity::FormatUidFingerprint(inst::identity::GetActiveUid());
+        body += "\nPersona count: " + std::to_string(personas.size());
+        body += "\nConfiguration loaded: " + std::string(inst::identity::ConfigurationLoadedSuccessfully() ? "yes" : "no");
+        body += "\n\n" + inst::identity::GetConfigurationStatus();
+        mainApp->CreateShowDialog("PersonaFoil diagnostics", body, {"common.ok"_lang}, true);
+    }
+
+    void optionsPage::createPersona() {
+        const std::string defaultName = inst::identity::NextDefaultPersonaName();
+        const int confirm = mainApp->CreateShowDialog(
+            "New Identity",
+            "Create and activate a persistent local identity named " + defaultName + "?\n\nIts random seed stays on this SD card.",
+            {"Create & Activate", "common.cancel"_lang}, false);
+        if (confirm != 0) return;
+        std::string error;
+        if (!inst::identity::CreatePersona(defaultName, true, nullptr, &error)) {
+            mainApp->CreateShowDialog("Could not create identity", error, {"common.ok"_lang}, true);
+            return;
+        }
+        this->refreshOptions();
+        const std::string fingerprint = inst::identity::FormatUidFingerprint(inst::identity::GetActiveUid());
+        mainApp->CreateShowDialog("Identity activated", defaultName + " is now active.\nUID: " + fingerprint,
+            {"common.ok"_lang}, false);
+    }
+
+    void optionsPage::exportDiagnosticReport() {
+        std::string path;
+        std::string error;
+        if (!inst::diagnostics::ExportDiagnosticReport(&path, &error)) {
+            mainApp->CreateShowDialog("Diagnostic export failed", error, {"common.ok"_lang}, true);
+            return;
+        }
+        mainApp->CreateShowDialog("Diagnostic report exported", path, {"common.ok"_lang}, false);
+    }
+
+    void optionsPage::managePersona(const inst::identity::Persona& persona) {
+        const bool active = inst::identity::GetActivePersonaId() == persona.id;
+        const std::string fingerprint = inst::identity::FormatUidFingerprint(inst::identity::ComputeUidFromIdentityBytes(persona.seed));
+        const int action = mainApp->CreateShowDialog(
+            persona.name,
+            "UID fingerprint: " + fingerprint + (active ? "\nCurrent identity" : ""),
+            {"Activate", "Rename", "Delete", "View fingerprint", "common.cancel"_lang},
+            false);
+
+        std::string error;
+        if (action == 0) {
+            if (!inst::identity::ActivatePersona(persona.id, &error))
+                mainApp->CreateShowDialog("Could not activate persona", error, {"common.ok"_lang}, true);
+        } else if (action == 1) {
+            const std::string name = TrimString(inst::util::softwareKeyboard("Persona name", persona.name, 64));
+            if (name.empty())
+                return;
+            if (!inst::identity::RenamePersona(persona.id, name, &error))
+                mainApp->CreateShowDialog("Could not rename persona", error, {"common.ok"_lang}, true);
+        } else if (action == 2) {
+            std::string warning = "Delete " + persona.name + "? This cannot be undone.";
+            if (active)
+                warning += "\n\nNative Switch will become active.";
+            const int confirm = mainApp->CreateShowDialog("Delete persona?", warning, {"Delete", "common.cancel"_lang}, false);
+            if (confirm == 0 && !inst::identity::DeletePersona(persona.id, &error))
+                mainApp->CreateShowDialog("Could not delete persona", error, {"common.ok"_lang}, true);
+        } else if (action == 3) {
+            mainApp->CreateShowDialog(persona.name, "UID fingerprint: " + fingerprint, {"common.ok"_lang}, true);
+        }
+        this->refreshOptions();
     }
 
     void optionsPage::openRemoteList(int selectedIndex) {
@@ -1025,7 +1120,6 @@ namespace inst::ui {
             }
             std::string keyboardResult;
             int rc;
-            std::vector<std::string> downloadUrl;
             std::vector<std::string> languageList;
             int selectedIndex = this->menu->GetSelectedIndex();
             if (this->selectedSection == 0) {
@@ -1033,6 +1127,37 @@ namespace inst::ui {
                 if ((selectedIndex < 0) || (selectedIndex >= static_cast<int>(sizeof(kGeneralMap) / sizeof(kGeneralMap[0])))) return;
                 selectedIndex = kGeneralMap[selectedIndex];
             } else if (this->selectedSection == 1) {
+                const auto personas = inst::identity::ListPersonas();
+                if (selectedIndex == 0 || selectedIndex == 1) {
+                    this->showIdentityDiagnostics();
+                    return;
+                }
+                if (selectedIndex == 2) {
+                    std::string error;
+                    if (!inst::identity::ActivateNative(&error))
+                        mainApp->CreateShowDialog("Could not activate Native Switch", error, {"common.ok"_lang}, true);
+                    this->refreshOptions();
+                    return;
+                }
+                const int personaIndex = selectedIndex - 3;
+                if (personaIndex >= 0 && personaIndex < static_cast<int>(personas.size())) {
+                    this->managePersona(personas[static_cast<std::size_t>(personaIndex)]);
+                    return;
+                }
+                if (selectedIndex == static_cast<int>(personas.size()) + 3) {
+                    this->createPersona();
+                    return;
+                }
+                if (selectedIndex == static_cast<int>(personas.size()) + 4) {
+                    this->exportDiagnosticReport();
+                    return;
+                }
+                if (selectedIndex == static_cast<int>(personas.size()) + 5) {
+                    this->showIdentityDiagnostics();
+                    return;
+                }
+                return;
+            } else if (this->selectedSection == 2) {
                 static const int kRemoteMap[] = {20, 21, 25, 26, 12, 13, 27, 24, 19, 23, 22};
                 if ((selectedIndex < 0) || (selectedIndex >= static_cast<int>(sizeof(kRemoteMap) / sizeof(kRemoteMap[0])))) return;
                 selectedIndex = kRemoteMap[selectedIndex];
@@ -1183,7 +1308,7 @@ namespace inst::ui {
                     }
 
                     const std::vector<std::string> profiles = {
-                        "Default (CyberFoil)",
+                        "Default (CyberFoil compatibility)",
                         "Tinfoil",
                         "Chrome (Windows)",
                         "Safari (iPhone)",
@@ -1196,7 +1321,7 @@ namespace inst::ui {
                     const std::string currentLabel = profiles[currentIndex];
                     int profileChoice = inst::ui::mainApp->CreateShowDialog(
                         "User-Agent profile",
-                        "Used for file/media downloads. Remote API always uses CyberFoil.",
+                        "Used for file/media downloads. Remote API preserves the CyberFoil-compatible User-Agent.",
                         profiles,
                         false
                     );
@@ -1377,18 +1502,23 @@ namespace inst::ui {
                     mainApp->FadeOut();
                     mainApp->Close();
                     break;
-                case 17:
+                case 17: {
                     if (inst::util::getIPAddress() == "1.0.0.127") {
                         inst::ui::mainApp->CreateShowDialog("main.net.title"_lang, "main.net.desc"_lang, {"common.ok"_lang}, true);
                         break;
                     }
-                    downloadUrl = inst::util::checkForAppUpdate();
-                    if (!downloadUrl.size()) {
-                        mainApp->CreateShowDialog("options.update.title_check_fail"_lang, "options.update.desc_check_fail"_lang, {"common.ok"_lang}, false);
+                    const auto check = inst::update::CheckForUpdate(inst::config::appVersion);
+                    if (check.status == inst::update::CheckStatus::Error) {
+                        mainApp->CreateShowDialog("Update check failed", check.error.empty() ? "Could not check PersonaFoil releases." : check.error, {"common.ok"_lang}, true);
                         break;
                     }
-                    this->askToUpdate(downloadUrl);
+                    if (check.status == inst::update::CheckStatus::UpToDate) {
+                        mainApp->CreateShowDialog("PersonaFoil is up to date", "Current version: v" + inst::config::appVersion, {"common.ok"_lang}, false);
+                        break;
+                    }
+                    this->askToUpdate({check.release.version, check.release.nroUrl, check.release.notes, check.release.checksumsUrl});
                     break;
+                }
                 case 18:
                     inst::ui::mainApp->CreateShowDialog("options.credits.title"_lang, "options.credits.desc"_lang, {"common.close"_lang}, true);
                     break;

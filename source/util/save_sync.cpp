@@ -25,7 +25,7 @@
 #include "util/json.hpp"
 #include "util/lang.hpp"
 #include "util/title_util.hpp"
-#include "util/uid.hpp"
+#include "identity/identity.hpp"
 #include "util/util.hpp"
 #include "ui/instPage.hpp"
 
@@ -699,7 +699,7 @@ namespace {
         std::string languageHeader = "Language: " + Language::GetRemoteHeaderLanguage();
         std::string hauthHeader = "HAUTH: " + inst::util::ComputeHauthFromUrl(requestUrl);
         std::string uauthHeader = "UAUTH: " + inst::util::ComputeUauthFromUrl(requestUrl, user, pass);
-        std::string uidHeader = "UID: " + inst::util::ComputeUidFromMmcCid();
+        std::string uidHeader = "UID: " + inst::identity::GetActiveUid();
         return {
             themeHeader,
             uidHeader,
@@ -1579,5 +1579,4 @@ namespace inst::save_sync {
         return true;
     }
 }
-
 

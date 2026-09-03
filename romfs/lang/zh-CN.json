@@ -33,7 +33,7 @@
     },
     "applet": {
       "title": "不支持 Applet 模式",
-      "desc": "在 Applet 模式下使用 CyberFoil 可能会遇到问题，\n如果遇到问题，请切换 CyberFoil 的运行模式！\n(退回主界面，按住  并打开任意游戏，进入 hbmenu 后再打开 CyberFoil 即可)"
+      "desc": "在 Applet 模式下使用 PersonaFoil 可能会遇到问题，\n如果遇到问题，请切换 PersonaFoil 的运行模式！\n(退回主界面，按住  并打开任意游戏，进入 hbmenu 后再打开 PersonaFoil 即可)"
     },
     "buttons": " 选择     退出",
     "info": {
@@ -45,16 +45,16 @@
       "usb": "使用 NS-USBloader 等工具通过 USB 安装。",
       "net": "从局域网或互联网来源安装文件。",
       "sig": "安装、更新或移除签名补丁。",
-      "set": "修改 CyberFoil 偏好和 Remote 设置。",
-      "backup": "将所选用户的全部本地存档数据一次性备份到你已配置的 Remote 服务器。\n\n工作方式：\n1. 如果有多个用户，先选择要备份的账号。\n2. 如果未配置 Remote，CyberFoil 会先尝试已保存的 Remote 配置，否则会要求输入 Remote URL。\n3. 输入备份备注（必填）。\n4. CyberFoil 会扫描该用户的本地存档，并逐个上传到服务器。\n5. 扫描和上传过程中会显示进度。\n6. 最后会显示成功与失败的汇总。",
-      "exit": "关闭 CyberFoil 并返回 HOME。"
+      "set": "修改 PersonaFoil 偏好和 Remote 设置。",
+      "backup": "将所选用户的全部本地存档数据一次性备份到你已配置的 Remote 服务器。\n\n工作方式：\n1. 如果有多个用户，先选择要备份的账号。\n2. 如果未配置 Remote，PersonaFoil 会先尝试已保存的 Remote 配置，否则会要求输入 Remote URL。\n3. 输入备份备注（必填）。\n4. PersonaFoil 会扫描该用户的本地存档，并逐个上传到服务器。\n5. 扫描和上传过程中会显示进度。\n6. 最后会显示成功与失败的汇总。",
+      "exit": "关闭 PersonaFoil 并返回 HOME。"
     }
   },
   "inst": {
     "net": {
       "help": {
         "title": "帮助",
-        "desc": "可以使用下列工具远程安装文件，例如在 Tinfoil 模式下使用 NS-USBloader。\n如想向 Switch 发送文件，打开电脑或者移动设备上任一工具软件，\n输入屏幕上显示的 Switch IP 地址，选择文件，然后上传到您的主机即可！\n如果您使用的工具软件不支持选择特定文件类型，请尝试更改文件扩展名。\nCyberFoil 在通过网络安装不限制文件扩展名！\n\n如果以上无效，请复制文件到 SD 卡并在主菜单中选择\"通过 SD 卡安装\"！"
+        "desc": "可以使用下列工具远程安装文件，例如在 Tinfoil 模式下使用 NS-USBloader。\n如想向 Switch 发送文件，打开电脑或者移动设备上任一工具软件，\n输入屏幕上显示的 Switch IP 地址，选择文件，然后上传到您的主机即可！\n如果您使用的工具软件不支持选择特定文件类型，请尝试更改文件扩展名。\nPersonaFoil 在通过网络安装不限制文件扩展名！\n\n如果以上无效，请复制文件到 SD 卡并在主菜单中选择\"通过 SD 卡安装\"！"
       },
       "src": {
         "title": "请选择安装来源？",
@@ -211,7 +211,7 @@
     },
     "nca_verify": {
       "title": "检测到无效 NCA 签名！",
-      "desc": "请确认签名不正确的文件来源可靠。\n包含整合 XCI 和 DLC 解锁器的文件将始终显示此警告。\n您可以在 CyberFoil 设置中禁用此验证。\n\n是否继续安装？",
+      "desc": "请确认签名不正确的文件来源可靠。\n包含整合 XCI 和 DLC 解锁器的文件将始终显示此警告。\n您可以在 PersonaFoil 设置中禁用此验证。\n\n是否继续安装？",
       "opt1": "是的，我已明白其中风险",
       "error": "请求的 NCA 没有正确签名："
     },
@@ -235,7 +235,7 @@
     "backup_failed": "无法备份 Hekate patch.ini！是否继续？",
     "backup_failed_desc": "如果您不使用 Hekate，请忽略此警告。",
     "download_failed": "无法下载签名补丁",
-    "download_failed_desc": "您可能在 CyberFoil 设置中设定了无效来源，\n或者来源可能暂时无法访问。",
+    "download_failed_desc": "您可能在 PersonaFoil 设置中设定了无效来源，\n或者来源可能暂时无法访问。",
     "version_text2": "您的签名补丁已更新到适配 HOS 版本 ",
     "install_complete": "安装完成！",
     "complete_desc": "重启主机并应用",
@@ -254,7 +254,7 @@
       "nca_verify": "安装前验证 NCA 签名",
       "boost_mode": "安装时启用\"增强模式\"",
       "ask_delete": "安装后询问文件删除",
-      "auto_update": "自动检查 CyberFoil 更新",
+      "auto_update": "自动检查 PersonaFoil 更新",
       "gay_option": "基友模式",
       "sig_url": "签名补丁源链接 (URL)：",
       "remote_url": "Remote 地址：",
@@ -266,7 +266,7 @@
       "remote_start_grid_mode": "以网格模式启动 Remote",
       "remote_reset_icons": "重置 Remote 图标缓存",
       "language": "语言：",
-      "check_update": "检查 CyberFoil 更新",
+      "check_update": "检查 PersonaFoil 更新",
       "credits": "致谢",
       "sound": "启用声音",
       "oled": "启用 OLED 模式",
@@ -290,28 +290,28 @@
     },
     "update": {
       "title": "有更新可用",
-      "desc0": "CyberFoil ",
+      "desc0": "PersonaFoil ",
       "desc1": " 存在可用更新！是否更新？",
       "opt0": "更新",
-      "top_info": "正在更新 CyberFoil ",
-      "bot_info": "正在下载 CyberFoil ",
-      "bot_info2": "正在解压 CyberFoil ",
+      "top_info": "正在更新 PersonaFoil ",
+      "bot_info": "正在下载 PersonaFoil ",
+      "bot_info2": "正在解压 PersonaFoil ",
       "complete": "更新完成！",
       "failed": "更新失败！",
       "end_desc": "软件即将被关闭。",
       "title_check_fail": "没有发现更新",
-      "desc_check_fail": "当前 CyberFoil 已是最新版！"
+      "desc_check_fail": "当前 PersonaFoil 已是最新版！"
     },
     "credits": {
       "title": "致谢以下朋友！",
       "desc": "- 感谢 HookedBehemoth 贡献了诸多代码\n- 感谢 Adubbz 及其他贡献者编写了 Tinfoil\n- 感谢 XorTroll 编写了 Plutonium 框架和 Goldleaf\n- 感谢 blawar 和 nicoboss 添加了 NSZ 支持\n- 感谢来自 AtlasNX 的诸多组件\n- 感谢来自 RetroNX 的诸多组件\n- 感谢 namako8982 提供了 Momiji 插图\n- 感谢 TheXzoron (baka)"
     },
     "language": {
-      "title": "选择 CyberFoil 语言",
+      "title": "选择 PersonaFoil 语言",
       "desc": "软件将在更改语言后关闭，按  取消。",
       "system_language": "系统默认"
     },
-    "title": "更改 CyberFoil 设置！",
+    "title": "更改 PersonaFoil 设置！",
     "buttons": " 选择/更改     取消"
   },
   "common": {

@@ -1,0 +1,28 @@
+name: Feature request
+description: Suggest an improvement that fits PersonaFoil's application-level mission
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: PersonaFoil focuses on local, reversible application-level identity profiles. Requests for certificate impersonation, PRODINFO edits, global console-identity replacement, or third-party restriction bypasses are out of scope.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Privacy / security impact
