@@ -1,0 +1,42 @@
+name: Prepare v0.1.1
+
+on:
+  push:
+    branches:
+      - release/v0.1.1
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/v0.1.1
+          fetch-depth: 0
+      - name: Bump version and changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed -i 's/^APP_VERSION\t:=\t0\.1\.0$/APP_VERSION\t:=\t0.1.1/' Makefile
+          grep -q $'^APP_VERSION\t:=\t0.1.1$' Makefile
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('CHANGELOG.md')
+          text = p.read_text()
+          old = '''## [Unreleased]\n\n### Added\n- Persistent application-level personas using locally generated 16-byte seeds.\n- Native Switch fallback preserving CyberFoil's original UID derivation.\n- Identity management, diagnostics, controlled UID echo testing, CI, and release packaging.\n- Verified GitHub Release updater architecture with semantic-version checks, exact asset selection, SHA-256 verification, and backup/rollback handling.\n- Safe diagnostic report export and GitHub project/community infrastructure.\n\n### Changed\n- Persona creation now creates and activates a new persistent identity in one saved transaction.\n- Automatic app-update checking defaults to off and never silently installs an update.\n\n### Security\n- Updater rejects drafts/prereleases, untrusted asset URLs, missing/malformed checksums, and unknown/unsafe running NRO paths.\n'''
+          new = '''## [Unreleased]\n\n## [0.1.1] - 2026-09-05\n\n### Changed\n- Version bump to provide the first real in-app updater validation path from development/public v0.1.0 installs.\n- No identity, networking, or updater behavior changes from the validated v0.1.0 codebase.\n\n## [0.1.0] - 2026-09-05\n\n### Added\n- Persistent application-level personas using locally generated 16-byte seeds.\n- Native Switch fallback preserving CyberFoil's original UID derivation.\n- Identity management, diagnostics, controlled UID echo testing, CI, and release packaging.\n- Verified GitHub Release updater architecture with semantic-version checks, exact asset selection, SHA-256 verification, and backup/rollback handling.\n- Safe diagnostic report export and GitHub project/community infrastructure.\n\n### Changed\n- Persona creation now creates and activates a new persistent identity in one saved transaction.\n- Automatic app-update checking defaults to off and never silently installs an update.\n\n### Security\n- Updater rejects drafts/prereleases, untrusted asset URLs, missing/malformed checksums, and unknown/unsafe running NRO paths.\n'''
+          if old not in text:
+              raise SystemExit('expected changelog block not found')
+          p.write_text(text.replace(old, new, 1))
+          PY
+          git rm .github/workflows/bump-v0.1.1.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Makefile CHANGELOG.md
+          git diff --cached --check
+          git commit -m 'release: bump PersonaFoil to v0.1.1'
+          git push origin HEAD:release/v0.1.1
