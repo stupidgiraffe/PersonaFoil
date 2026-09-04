@@ -4,6 +4,14 @@ All notable PersonaFoil-specific changes are documented here.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-05
+
+### Changed
+- Version bump to provide the first real in-app updater validation path from development/public v0.1.0 installs.
+- No identity, networking, or updater behavior changes from the validated v0.1.0 codebase.
+
+## [0.1.0] - 2026-09-05
+
 ### Added
 - Persistent application-level personas using locally generated 16-byte seeds.
 - Native Switch fallback preserving CyberFoil's original UID derivation.

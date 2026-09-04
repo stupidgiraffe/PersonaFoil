@@ -58,7 +58,7 @@ INCLUDES	:=	include include/ui include/data include/identity include/install inc
 				$(PLUTONIUM_INCLUDE_SWITCH) $(PLUTONIUM_INCLUDE_OUTPUT) $(PLUTONIUM_INCLUDE_SOURCE) external/libhaze/include
 APP_TITLE	:=	PersonaFoil
 APP_AUTHOR	:=	PersonaFoil contributors
-APP_VERSION	:=	0.1.0
+APP_VERSION	:=	0.1.1
 GIT_COMMIT	:=	$(shell if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then git rev-parse --short=8 HEAD 2>/dev/null; elif [ -n "$$GITHUB_SHA" ]; then printf "%s" "$$GITHUB_SHA" | cut -c1-8; else echo nogit; fi)
 GIT_STATUS	:=	$(shell if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then if git diff --quiet --ignore-submodules HEAD -- 2>/dev/null && git diff --cached --quiet --ignore-submodules HEAD -- 2>/dev/null; then echo clean; else echo dirty; fi; elif [ -n "$$GITHUB_ACTIONS" ]; then echo clean; else echo nogit; fi)
 ifeq ($(RELEASE),1)
