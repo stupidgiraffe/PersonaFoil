@@ -4,22 +4,30 @@
 
 <h1 align="center">PersonaFoil</h1>
 
-<p align="center"><strong>Application-level identity profiles for Nintendo Switch homebrew.</strong></p>
-<p align="center">Persistent personas • Native fallback • Verified updates • No NAND identity changes</p>
+<p align="center"><strong>Persistent application-level identities for Nintendo Switch homebrew.</strong></p>
+<p align="center">Create identities • Switch instantly • Return to Native • Update in-app</p>
 
 <p align="center">
-  <a href="https://github.com/stupidgiraffe/PersonaFoil/releases">Releases</a> ·
-  <a href="docs/IDENTITY_MODEL.md">Identity model</a> ·
-  <a href="docs/TESTING.md">Testing</a> ·
-  <a href="https://github.com/stupidgiraffe/PersonaFoil/issues">Report a bug</a> ·
-  <a href="https://buymeacoffee.com/stupidgiraffe">☕ Support PersonaFoil</a>
+  <a href="https://github.com/stupidgiraffe/PersonaFoil/releases/latest/download/personafoil.nro"><strong>⬇ Download NRO</strong></a>
+  &nbsp;•&nbsp;
+  <a href="https://github.com/stupidgiraffe/PersonaFoil/releases/latest/download/personafoil.zip"><strong>⬇ SD-ready ZIP</strong></a>
+  &nbsp;•&nbsp;
+  <a href="https://github.com/stupidgiraffe/PersonaFoil/releases/latest"><strong>Latest Release</strong></a>
 </p>
 
-> **Pre-release:** v0.1.0 has not been published yet, so there are intentionally no `releases/latest/download/...` links on this page. Once the first release exists, GitHub Releases will provide the standalone NRO, SD-ready ZIP, and checksums.
+<p align="center">
+  <a href="docs/IDENTITY_MODEL.md">Identity model</a>
+  &nbsp;•&nbsp;
+  <a href="docs/TESTING.md">Testing</a>
+  &nbsp;•&nbsp;
+  <a href="https://github.com/stupidgiraffe/PersonaFoil/issues">Report a bug</a>
+  &nbsp;•&nbsp;
+  <a href="https://buymeacoffee.com/stupidgiraffe">☕ Buy Me a Coffee</a>
+</p>
 
 ## What PersonaFoil does
 
-PersonaFoil is derived from [CyberFoil](https://github.com/luketanti/CyberFoil) and adds persistent, selectable **application-level personas**. It virtualizes the UID that PersonaFoil sends in CyberFoil-compatible requests while leaving unrelated authentication and platform identity mechanisms unchanged.
+PersonaFoil is derived from [CyberFoil](https://github.com/luketanti/CyberFoil) and adds persistent, selectable application-level identities called **personas**.
 
 ### Native mode
 
@@ -43,36 +51,52 @@ Persona UID
 
 The selected UID is used by PersonaFoil's centralized request identity layer.
 
-## Why PersonaFoil?
+## Highlights
 
-- Create persistent local personas and switch between them.
-- Return to **Native Switch** at any time.
-- Persona seeds remain local on the SD card.
+- Create persistent local identities with **New Identity**.
+- Newly created identities activate immediately.
+- Switch between saved identities at any time.
+- Return to **Native Switch** whenever you want the original CyberFoil-compatible UID behavior.
+- Persona seeds stay local on the SD card.
 - No per-request randomization.
 - No telemetry added by PersonaFoil.
-- Stable-release updater verifies SHA-256 before replacing the NRO.
+- In-app updates use official GitHub Releases and verify SHA-256 before replacing the NRO.
 - Diagnostic reports deliberately omit sensitive identity/authentication material.
 
-## What PersonaFoil does **not** modify
+## Install
 
-PersonaFoil does not write or alter:
+### Standalone NRO
 
-- PRODINFO
-- NAND identity data
-- the physical eMMC CID
-- console serial number
-- device certificates
-- Nintendo Account identity
+Download:
 
-Persona selection also does not automatically virtualize HAUTH, UAUTH, Authorization credentials, TLS identity, or other third-party account state.
+**[personafoil.nro](https://github.com/stupidgiraffe/PersonaFoil/releases/latest/download/personafoil.nro)**
+
+Copy it to:
+
+```text
+sdmc:/switch/PersonaFoil/personafoil.nro
+```
+
+### SD-ready ZIP
+
+Download:
+
+**[personafoil.zip](https://github.com/stupidgiraffe/PersonaFoil/releases/latest/download/personafoil.zip)**
+
+Extract it to the root of the Switch SD card.
+
+Checksums:
+
+**[SHA256SUMS.txt](https://github.com/stupidgiraffe/PersonaFoil/releases/latest/download/SHA256SUMS.txt)**
 
 ## Quick start
 
-1. Install `personafoil.nro` as `sdmc:/switch/PersonaFoil/personafoil.nro` (or use the SD-ready ZIP once v0.1.0 is released).
-2. Launch PersonaFoil in full-memory mode when practical.
+1. Install PersonaFoil.
+2. Launch it in full-memory mode when practical.
 3. Open **Settings → Identity**.
-4. Choose **New Identity** to create and activate one persistent persona.
-5. Choose **Use Native Switch** whenever you want PersonaFoil's original native UID behavior.
+4. Choose **New Identity**.
+5. PersonaFoil creates, saves, and activates the new identity.
+6. Choose **Use Native Switch** whenever you want to return to native UID behavior.
 
 Persona state is stored at:
 
@@ -80,17 +104,28 @@ Persona state is stored at:
 sdmc:/switch/PersonaFoil/identity.json
 ```
 
-PersonaFoil uses temporary/backup writes and does not persist the raw physical CID.
+## What PersonaFoil does not change
 
-## Current hardware validation
+PersonaFoil does not write or alter:
 
-Observed on a real Nintendo Switch:
+- PRODINFO
+- NAND identity data
+- physical eMMC CID
+- console serial number
+- device certificates
+- Nintendo Account identity
+
+Persona selection also does not automatically virtualize HAUTH, UAUTH, Authorization credentials, TLS identity, or other third-party account state.
+
+## Hardware status
+
+Confirmed on a real Nintendo Switch:
 
 - PersonaFoil launches successfully.
-- Persona creation/UID derivation executes successfully.
-- Activating a persona changes the UID fingerprint shown in PersonaFoil.
+- Persona creation and UID derivation run successfully.
+- Activating a persona changes the UID fingerprint displayed by PersonaFoil.
 
-Still pending as a controlled release gate:
+Still being validated with the controlled echo test:
 
 ```text
 Native -> UID A
@@ -100,13 +135,17 @@ Persona 2 -> UID C
 Native -> UID A
 ```
 
-This controlled echo-endpoint sequence is required before claiming outgoing UID persistence/fallback hardware validation. The updater likewise requires a real release-to-release hardware test.
+The updater also still needs its first real release-to-release hardware test.
 
 ## Updates
 
-**Settings → System → Check Updates** checks only the official stable GitHub Release endpoint. A valid update requires exact `personafoil.nro` and `SHA256SUMS.txt` assets, semantic-version comparison, SHA-256 verification, and a safe `.new` / `.bak` replacement transaction.
+**Settings → System → Check Updates** checks the official stable GitHub Release endpoint.
 
-**Auto Update** is an optional startup *check*, off by default. It never silently installs an update. See [Updating](docs/UPDATING.md).
+A valid update requires the exact `personafoil.nro` and `SHA256SUMS.txt` assets, semantic-version comparison, SHA-256 verification, and the safe `.new` / `.bak` replacement transaction.
+
+**Auto Update** is an optional startup update check and is off by default. It does not silently install updates.
+
+See [Updating](docs/UPDATING.md).
 
 ## Diagnostics and troubleshooting
 
@@ -118,15 +157,12 @@ sdmc:/switch/PersonaFoil/diagnostics/
 
 The report excludes physical CID, full UID, persona seeds, passwords, Remote credentials, Authorization headers, and authentication tokens.
 
-When reporting a problem, attach the diagnostic report if useful and remove anything you do not want public.
-
 ## Documentation
 
 - [Identity model](docs/IDENTITY_MODEL.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Testing](docs/TESTING.md)
 - [Updating](docs/UPDATING.md)
-- [v0.1.0 release draft](docs/RELEASE_V0.1.0.md)
 - [Contributing](CONTRIBUTING.md)
 - [Security](SECURITY.md)
 - [Roadmap](ROADMAP.md)
@@ -139,7 +175,7 @@ make host-test
 make RELEASE=1
 ```
 
-CI performs host tests and a clean devkitA64 build/package. PersonaFoil remains GPLv3 and retains upstream CyberFoil attribution.
+CI performs host tests and a clean devkitA64 release build/package.
 
 ## Support PersonaFoil
 
@@ -148,6 +184,8 @@ If PersonaFoil is useful to you, you can support continued development:
 <p align="center">
   <a href="https://buymeacoffee.com/stupidgiraffe"><strong>☕ Buy Me a Coffee</strong></a>
 </p>
+
+GitHub's repository funding configuration also points to the same Buy Me a Coffee page.
 
 ## Credits and license
 
