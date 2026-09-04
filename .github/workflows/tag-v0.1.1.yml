@@ -1,0 +1,31 @@
+name: Tag PersonaFoil v0.1.1
+
+on:
+  push:
+    branches:
+      - automation/tag-v0.1.1
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+      - name: Create v0.1.1 tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "b6f85e93cd4a8cb0d0dac693e4107ba10683e21f"
+          if git rev-parse v0.1.1 >/dev/null 2>&1; then
+            echo "v0.1.1 already exists"
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag -a v0.1.1 -m 'PersonaFoil v0.1.1'
+          git push origin v0.1.1
