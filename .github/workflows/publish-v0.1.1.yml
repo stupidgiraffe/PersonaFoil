@@ -1,0 +1,65 @@
+name: Publish PersonaFoil v0.1.1
+
+on:
+  push:
+    branches:
+      - automation/tag-v0.1.1
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    container:
+      image: devkitpro/devkita64:latest
+    steps:
+      - name: Checkout v0.1.1 with submodules
+        uses: actions/checkout@v4
+        with:
+          ref: v0.1.1
+          submodules: recursive
+          fetch-depth: 0
+      - name: Verify tag version
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q $'^APP_VERSION\t:=\t0.1.1$' Makefile
+      - name: Install Switch port libraries
+        run: dkp-pacman -S --noconfirm --needed switch-ntfs-3g switch-lwext4
+      - name: Build and package v0.1.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          make -j"$(nproc)" RELEASE=1
+          test -s personafoil.nro
+          mkdir -p dist/switch/PersonaFoil
+          cp personafoil.nro dist/switch/PersonaFoil/personafoil.nro
+          python3 - <<'PY'
+          import os, zipfile
+          with zipfile.ZipFile('personafoil.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
+              for root, _, files in os.walk('dist'):
+                  for name in files:
+                      path = os.path.join(root, name)
+                      archive.write(path, os.path.relpath(path, 'dist'))
+          PY
+          sha256sum personafoil.nro personafoil.zip > SHA256SUMS.txt
+          grep -Eq '^[0-9a-f]{64}  personafoil\.nro$' SHA256SUMS.txt
+          grep -Eq '^[0-9a-f]{64}  personafoil\.zip$' SHA256SUMS.txt
+      - name: Publish v0.1.1 release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.1
+          name: PersonaFoil v0.1.1
+          prerelease: false
+          draft: false
+          body: |
+            PersonaFoil v0.1.1 is a minimal version-bump release intended to validate the verified in-app updater from existing 0.1.0 installs.
+
+            No identity, networking, or updater behavior changed from v0.1.0.
+
+            After updating through PersonaFoil, exit and relaunch the app. The installed version should report v0.1.1 and the previous NRO should remain as a `.bak` backup.
+          files: |
+            personafoil.nro
+            personafoil.zip
+            SHA256SUMS.txt
