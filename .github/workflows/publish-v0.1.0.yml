@@ -1,0 +1,98 @@
+name: Publish PersonaFoil v0.1.0
+
+on:
+  push:
+    branches:
+      - automation/publish-v0.1.0
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      EXPECTED_SHA: 496f27b1d465e195e3c23b6c55e4db1b03c5bcd5
+      ARTIFACT_ID: 9914711673
+    steps:
+      - name: Checkout master release metadata
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Verify release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$EXPECTED_SHA"
+          if gh release view v0.1.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "v0.1.0 already exists; refusing to publish a second release."
+            exit 1
+          fi
+
+      - name: Download green production artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "/repos/$GITHUB_REPOSITORY/actions/artifacts/$ARTIFACT_ID/zip" > production-artifact.zip
+          mkdir release-assets
+          unzip -q production-artifact.zip -d release-assets
+          cd release-assets
+          test -s personafoil.nro
+          test -s personafoil.zip
+          test -s SHA256SUMS.txt
+          sha256sum -c SHA256SUMS.txt
+
+      - name: Prepare release notes
+        shell: bash
+        run: |
+          cat > release-notes.md <<'EOF'
+          # PersonaFoil v0.1.0
+
+          First public PersonaFoil release.
+
+          ## Downloads
+
+          - **personafoil.nro** — standalone app
+          - **personafoil.zip** — SD-ready package
+          - **SHA256SUMS.txt** — release checksums
+
+          ## Highlights
+
+          - Persistent, selectable local personas
+          - One-action **New Identity** creation and activation
+          - Explicit **Use Native Switch** fallback
+          - Verified in-app updates from official PersonaFoil GitHub Releases
+          - Safe diagnostic report export
+          - No PRODINFO, NAND, certificate, serial, or eMMC-CID modification
+
+          ## Install
+
+          Copy `personafoil.nro` to `sdmc:/switch/PersonaFoil/personafoil.nro`, or extract `personafoil.zip` to the SD-card root.
+
+          ## Hardware status
+
+          PersonaFoil has launched successfully on real Switch hardware and persona activation has changed the displayed UID fingerprint. Controlled outgoing-UID persistence/fallback validation and the first real release-to-release updater test remain follow-up validation items.
+          EOF
+
+      - name: Publish GitHub Release
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create v0.1.0 \
+            release-assets/personafoil.nro \
+            release-assets/personafoil.zip \
+            release-assets/SHA256SUMS.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$EXPECTED_SHA" \
+            --title "PersonaFoil v0.1.0" \
+            --notes-file release-notes.md
+
+      - name: Verify public release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view v0.1.0 --repo "$GITHUB_REPOSITORY" --json url,isDraft,isPrerelease,tagName,name,assets
