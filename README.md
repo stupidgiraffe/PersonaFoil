@@ -161,6 +161,8 @@ The report excludes physical CID, full UID, persona seeds, passwords, Remote cre
 
 - [Identity model](docs/IDENTITY_MODEL.md)
 - [Architecture](docs/ARCHITECTURE.md)
+- [Remote invariants](docs/REMOTE_INVARIANTS.md)
+- [PersonaBridge protocol](docs/PERSONABRIDGE_PROTOCOL.md)
 - [Testing](docs/TESTING.md)
 - [Updating](docs/UPDATING.md)
 - [Contributing](CONTRIBUTING.md)
@@ -204,5 +206,6 @@ successful-install sounds remain optional. The Identity section highlights the
 current identity, Native fallback, active personas, fingerprints and New Persona.
 
 See [Discovery](docs/DISCOVERY.md), [network trust](docs/NETWORK_SECURITY.md),
+[Remote invariants](docs/REMOTE_INVARIANTS.md), the [PersonaBridge protocol](docs/PERSONABRIDGE_PROTOCOL.md),
 [status](STATUS.md) and the [hardware acceptance matrix](docs/TESTING.md).
 Candidate builds are CI artifacts; these changes are not a published stable release.
