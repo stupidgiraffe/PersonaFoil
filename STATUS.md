@@ -16,8 +16,17 @@ persona presentation. Existing seed/UID storage and Native derivation are unchan
 
 Host validation passed for identity, updater, HTTP/TLS/redirect/range behavior,
 aggregation/negotiation/limits, migration, input gating, catalog integrity/cache
-retention and discovery publishing data. Target build and final review are pending.
+retention and discovery publishing data. Draft PR: #5. The first target build
+identified a Switch-only SHA-256 function-name mismatch; repaired to the existing
+libnx API used by the identity engine. A replacement target build is pending.
 No local Switch toolchain is installed; CI provides the target build.
+
+Public catalog branch `catalog-data` now contains 13 endpoints at
+`cdd2263c6a15d52f67b09cfdbc944b2615a10e32`. Its downloaded payload and checksum
+match the published source. Current host probes classify 2 online, 1 degraded,
+4 offline and 6 invalid responses; these are dated metadata observations, not
+real-Switch install acceptance. Scheduled refresh awaits a reviewed default-branch
+workflow merge.
 
 ## Hardware acceptance required
 

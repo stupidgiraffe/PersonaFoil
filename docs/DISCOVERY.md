@@ -46,7 +46,8 @@ Refresh is user-triggered. Catalog connectivity and the health of each endpoint
 are separate: a failed refresh keeps the last-good catalog. `.new` staging,
 read-back validation and `.bak` recovery protect the cache. The catalog is fetched
 only from the official repository's `catalog-data` branch over verified HTTPS.
-Until that branch is first published, the bundled catalog remains usable.
+The first catalog publication is available on that branch. Bundled presets remain
+available if the public catalog cannot be reached.
 
 ## Catalog v1
 

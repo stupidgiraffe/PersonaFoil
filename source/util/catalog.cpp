@@ -32,7 +32,7 @@ namespace inst::catalog {
     std::string Sha256(const std::string& data) {
         std::array<unsigned char, 32> hash{};
 #ifdef __SWITCH__
-        sha256Calculate(hash.data(), data.data(), data.size());
+        sha256CalculateHash(hash.data(), data.data(), data.size());
 #else
         SHA256(reinterpret_cast<const unsigned char*>(data.data()), data.size(), hash.data());
 #endif

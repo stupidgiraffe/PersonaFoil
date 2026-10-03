@@ -4,6 +4,16 @@
 #include <iostream>
 
 int main(int argc, char** argv) {
+    if (argc == 2 && std::string(argv[1]) == "--github") {
+        inst::http::Request request;
+        request.timeoutMs = 8000;
+        request.maxBytes = 1024 * 1024;
+        const auto response = inst::http::Get("https://api.github.com/repos/stupidgiraffe/PersonaFoil/releases/latest", request);
+        const auto release = inst::update::ParseReleaseResponse(response, "0.1.2");
+        assert(response.ok() && release.status == inst::update::CheckStatus::UpToDate);
+        std::cout << "Live official GitHub release check: up to date (" << release.release.version << ")\n";
+        return 0;
+    }
     assert(argc == 3);
     using namespace inst::http;
     const std::string base = argv[1];

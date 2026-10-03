@@ -71,6 +71,11 @@ int main() {
     assert(!remote::Negotiate("https://root.example", remote::Compatibility::Modern, indexFetch).error.empty());
     negotiation = remote::Negotiate(root, remote::Compatibility::Tinfoil, indexFetch);
     assert(negotiation.error.empty() && negotiation.capabilities.profile == remote::RequestProfile::Tinfoil);
+    remote::Fetch challenged = [&](const std::string&, remote::RequestProfile profile, bool) {
+        return profile == remote::RequestProfile::Tinfoil ? response(R"({"files":["a"]})") : response("", 401);
+    };
+    negotiation = remote::Negotiate(root, remote::Compatibility::Auto, challenged);
+    assert(negotiation.error.empty() && negotiation.capabilities.profile == remote::RequestProfile::Tinfoil);
     assert(remote::ReadCompatibility(nlohmann::json{{"legacyMode", true}}) == remote::Compatibility::Tinfoil);
     assert(remote::ReadCompatibility(nlohmann::json{{"legacyMode", false}}) == remote::Compatibility::Auto);
     assert(remote::ReadCompatibility(nlohmann::json{{"legacyMode", true}, {"compatibility", "modern"}}) == remote::Compatibility::Modern);

@@ -127,3 +127,10 @@ Additional platform checks: packaged CA bundle opens through Switch libcurl,
 verified GitHub asset redirects succeed, bad certificates fail, console time is
 valid, large indexes stay within memory limits and all inherited install methods
 (SD, USB, HDD, network, Remote, MTP) retain expected behavior.
+
+Optional live service checks use the same host transport/parser binaries:
+`build-host/http_tests --github` checks the official stable release endpoint.
+`build-host/catalog_tests <downloaded-catalog> <temporary-cache-directory> <entry-count>`
+validates published pipeline output through the C++ client and its transactional
+cache, including corruption rejection and backup recovery. These checks establish
+host integration and do not replace the Switch matrix.
