@@ -46,6 +46,7 @@ int main(int argc, char** argv) {
     request.writer = {};
     request.headers = {"HAUTH: fixture", "UAUTH: fixture", "UID: fixture"};
     request.username = "fixture"; request.password = "fixture";
+    request.credentialOrigin = base;
     auto same = Get(base + "/same", request);
     assert(same.body == "present" && same.effectiveUrl.find("fixture") == std::string::npos);
     assert(Get(base + "/cross", request).body == "absent");
@@ -57,6 +58,7 @@ int main(int argc, char** argv) {
     assert(!Get(argv[2], request).ok()); // Self-signed certificate rejected.
     request.verifyTls = false;
     assert(Get(argv[2], request).ok());
+    assert(Get(ResolveUrl(argv[2], "/credentials"), request).body == "absent");
     assert(Origin("https://EXAMPLE.com/a") == Origin("https://example.com:443/b"));
     assert(Origin("https://example.com/a") != Origin("http://example.com/a"));
     assert(CanonicalUrl("https://user:pass@example.com/").empty());

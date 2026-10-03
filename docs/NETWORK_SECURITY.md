@@ -34,3 +34,9 @@ verification is separate from TLS verification. Catalog checksums likewise are
 corruption checks, not publisher signatures.
 
 Diagnostics omit secrets. Tests use explicitly synthetic credentials only.
+
+Server-supplied absolute save/cheat download addresses receive account and identity
+headers only when their origin matches the configured Remote. Anonymous downloads
+remain possible on other HTTP(S) origins. Save download redirects are rejected;
+cheat download redirects use the typed transport's origin checks. Install source
+diagnostics show origin only, excluding query parameters and private path details.

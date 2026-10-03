@@ -18,7 +18,9 @@ Host validation passed for identity, updater, HTTP/TLS/redirect/range behavior,
 aggregation/negotiation/limits, migration, input gating, catalog integrity/cache
 retention and discovery publishing data. Draft PR: #5. The first target build
 identified a Switch-only SHA-256 function-name mismatch; repaired to the existing
-libnx API used by the identity engine. A replacement target build is pending.
+libnx API used by the identity engine. The next build exposed two removed JBOD
+helpers; both are restored. The final authentication review also scoped save/cheat
+download credentials to the configured origin. A replacement target build is pending.
 No local Switch toolchain is installed; CI provides the target build.
 
 Public catalog branch `catalog-data` now contains 13 endpoints at

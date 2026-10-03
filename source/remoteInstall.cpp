@@ -1974,7 +1974,10 @@ namespace remoteInstStuff {
             error = "Invalid cheat entry.";
             return false;
         }
-        FetchResult fetch = FetchRemoteResponse(item.url, user, pass);
+        const bool trusted = !inst::http::Origin(inst::config::remoteUrl).empty() &&
+            inst::http::Origin(item.url) == inst::http::Origin(inst::config::remoteUrl);
+        FetchResult fetch = FetchRemoteResponse(item.url, trusted ? user : "", trusted ? pass : "", {},
+            trusted ? inst::remote::RequestProfile::Modern : inst::remote::RequestProfile::Public);
         if (!ValidateRemoteResponse(fetch, error))
             return false;
         if (fetch.status == 404 || fetch.status == 405) {
@@ -2456,13 +2459,13 @@ namespace remoteInstStuff {
         std::string currentIndexSourceUrl;
         try {
             for (size_t i = 0; i < items.size(); i++) {
-                LOG_DEBUG("%s %s\n", "Install request from", items[i].url.c_str());
+                LOG_DEBUG("%s %s\n", "Install request origin", inst::http::Origin(items[i].url).c_str());
                 currentName = names[i];
                 currentGoogleDriveWithoutApiKey = items[i].googleDriveWithoutApiKey;
                 currentIndexSourceUrl = items[i].indexSourceUrl;
                 inst::diag::NoteTransferReceived(currentName);
                 if (!currentIndexSourceUrl.empty())
-                    inst::diag::NoteStep("Index source URL: " + currentIndexSourceUrl, false);
+                    inst::diag::NoteStep("Index source origin: " + inst::http::Origin(currentIndexSourceUrl), false);
                 UpdateInstallIcon(items[i]);
                 inst::ui::instPage::setTopInstInfoText("inst.info_page.top_info0"_lang + currentName + sourceLabel);
                 std::unique_ptr<tin::install::Install> installTask;
@@ -2520,7 +2523,7 @@ namespace remoteInstStuff {
                         : inst::diag::BuildUserMessage(failure));
                 const std::string messageWithSource = currentIndexSourceUrl.empty()
                     ? userMessage
-                    : userMessage + "\n\nIndex source: " + currentIndexSourceUrl;
+                    : userMessage + "\n\nIndex source: " + inst::http::Origin(currentIndexSourceUrl);
                 inst::ui::mainApp->CreateShowDialog("inst.info_page.failed"_lang + failedName + "!", messageWithSource, {"common.ok"_lang}, true);
 
             }

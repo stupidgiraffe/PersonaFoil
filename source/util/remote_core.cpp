@@ -22,6 +22,13 @@ namespace inst::remote {
         bool IsIndex(const nlohmann::json& json) {
             return json.contains("files") || json.contains("directories") || json.contains("paths") || json.contains("titledb");
         }
+        bool NeedsCompatibilityRetry(const http::Result& response) {
+            if (response.status == 401 || response.status == 403 || response.error == http::Error::Decode ||
+                response.contentType.find("application/octet-stream") != std::string::npos) return true;
+            nlohmann::json node;
+            return response.ok() && Parse(response.body, node) && node.contains("error") &&
+                node["error"].is_string() && !node["error"].get<std::string>().empty();
+        }
     }
     nlohmann::json ParseDocument(const std::string& body) {
         return nlohmann::json::parse(body, [](int depth, nlohmann::json::parse_event_t, nlohmann::json&) {
@@ -86,9 +93,7 @@ namespace inst::remote {
         if (mode == Compatibility::Modern) return result;
         if (tryEndpoint(url, RequestProfile::Public, Family::Unknown, "/api/remote")) return result;
         // Retry an opted-in source after an authentication/schema challenge, not every host.
-        const bool challenge = result.response.status == 401 || result.response.status == 403 ||
-            result.response.contentType.find("application/octet-stream") != std::string::npos;
-        if (challenge) tryEndpoint(url, RequestProfile::Tinfoil, Family::Unknown, "/api/remote");
+        if (NeedsCompatibilityRetry(result.response)) tryEndpoint(url, RequestProfile::Tinfoil, Family::Unknown, "/api/remote");
         return result;
     }
     AggregateReport WalkIndex(const std::string& rawUrl, const http::Result& root, const Fetch& fetch, const Consume& consume, const Limits& limits) {
@@ -149,7 +154,7 @@ namespace inst::remote {
                 seen.insert(childUrl); ++report.requested;
                 const bool same = http::Origin(childUrl) == credentialOrigin;
                 auto childResponse = fetch(childUrl, RequestProfile::Public, same);
-                if (childResponse.status == 401 || childResponse.status == 403 || childResponse.contentType.find("application/octet-stream") != std::string::npos)
+                if (NeedsCompatibilityRetry(childResponse))
                     childResponse = fetch(childUrl, RequestProfile::Tinfoil, same);
                 const auto effective = childResponse.effectiveUrl.empty() ? childUrl : http::CanonicalUrl(childResponse.effectiveUrl);
                 const bool inherit = http::Origin(effective.empty() ? childUrl : effective) == http::Origin(url);

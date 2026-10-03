@@ -90,6 +90,37 @@ namespace tin::network
         return in.substr(0, pos);
     }
 
+    static bool StartsWithNoCase(const std::string& text, const char* prefix)
+    {
+        size_t i = 0;
+        while (prefix[i] != '\0') {
+            if (i >= text.size())
+                return false;
+            const unsigned char a = static_cast<unsigned char>(text[i]);
+            const unsigned char b = static_cast<unsigned char>(prefix[i]);
+            if (std::tolower(a) != std::tolower(b))
+                return false;
+            i++;
+        }
+        return true;
+    }
+
+    static bool ParseUnsignedSize(const std::string& text, size_t& out)
+    {
+        if (text.empty())
+            return false;
+
+        char* end = nullptr;
+        const unsigned long long parsed = std::strtoull(text.c_str(), &end, 10);
+        if (end == text.c_str() || (end && *end != '\0'))
+            return false;
+        if (parsed > static_cast<unsigned long long>(std::numeric_limits<size_t>::max()))
+            return false;
+
+        out = static_cast<size_t>(parsed);
+        return true;
+    }
+
     static void BuildVersionAndRevision(std::string& outVersion, std::string& outRevision)
     {
         const std::string raw = inst::remote::ActiveCapabilities().customIndex() ? "20.0.2" : inst::config::appVersion;
