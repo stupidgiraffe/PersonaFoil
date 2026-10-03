@@ -25,3 +25,16 @@ All notable PersonaFoil-specific changes are documented here.
 
 ### Security
 - Updater rejects drafts/prereleases, untrusted asset URLs, missing/malformed checksums, and unknown/unsafe running NRO paths.
+
+## 0.1.2 candidate
+
+- Repair no-range HTTP requests and distinguish updater HTTP/network/release states.
+- Preserve SHA-256/staged rollback and verify official-service HTTPS with bundled CAs.
+- Load custom-index aggregates partially, with bounded traversal and source warnings.
+- Default Remotes to Auto compatibility; preserve old profile/config formats.
+- Add off-device public shop discovery, validated catalog cache and OpenNX presets.
+- Add Discover Shops with provenance, health, Add/Test/Saved actions.
+- Confirm exit centrally and consume input across navigation/dialog/keyboard transitions.
+- Silence error audio; keep navigation/success audio under the global preference.
+- Promote current identity, active personas, fingerprints and New Persona in Settings.
+- Expand host regression tests; real Switch acceptance remains required.

@@ -58,7 +58,7 @@ INCLUDES	:=	include include/ui include/data include/identity include/install inc
 				$(PLUTONIUM_INCLUDE_SWITCH) $(PLUTONIUM_INCLUDE_OUTPUT) $(PLUTONIUM_INCLUDE_SOURCE) external/libhaze/include
 APP_TITLE	:=	PersonaFoil
 APP_AUTHOR	:=	PersonaFoil contributors
-APP_VERSION	:=	0.1.1
+APP_VERSION	:=	0.1.2
 GIT_COMMIT	:=	$(shell if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then git rev-parse --short=8 HEAD 2>/dev/null; elif [ -n "$$GITHUB_SHA" ]; then printf "%s" "$$GITHUB_SHA" | cut -c1-8; else echo nogit; fi)
 GIT_STATUS	:=	$(shell if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then if git diff --quiet --ignore-submodules HEAD -- 2>/dev/null && git diff --cached --quiet --ignore-submodules HEAD -- 2>/dev/null; then echo clean; else echo dirty; fi; elif [ -n "$$GITHUB_ACTIONS" ]; then echo clean; else echo nogit; fi)
 ifeq ($(RELEASE),1)
@@ -228,6 +228,16 @@ host-test:
 	./$(HOST_TEST_BIN)
 	$(HOST_CXX) -std=c++20 -Wall -Wextra -Werror -Iinclude tests/update_core_tests.cpp source/util/update_core.cpp -o $(HOST_UPDATE_TEST_BIN)
 	./$(HOST_UPDATE_TEST_BIN)
+	$(HOST_CXX) -std=c++20 -Wall -Wextra -Werror -Iinclude tests/http_tests.cpp source/util/http.cpp source/util/update_metadata.cpp source/util/update_core.cpp source/util/remote_core.cpp -lcurl -o build-host/http_tests
+	python3 tests/http_fixture.py build-host/http_tests
+	$(HOST_CXX) -std=c++20 -Wall -Wextra -Werror -Iinclude tests/remote_core_tests.cpp source/util/remote_core.cpp source/util/http.cpp -lcurl -o build-host/remote_core_tests
+	./build-host/remote_core_tests
+	$(HOST_CXX) -std=c++20 -Wall -Wextra -Werror -Iinclude tests/input_gate_tests.cpp -o build-host/input_gate_tests
+	./build-host/input_gate_tests
+	$(HOST_CXX) -std=c++20 -Wall -Wextra -Werror -Iinclude tests/catalog_tests.cpp source/util/catalog.cpp source/util/remote_core.cpp source/util/http.cpp -lcurl -lcrypto -o build-host/catalog_tests
+	$(HOST_CXX) -std=c++20 -Wall -Wextra -Werror -Iinclude -DAPP_VERSION='"0.1.2"' tests/config_migration_tests.cpp source/util/config.cpp source/util/remote_core.cpp source/util/http.cpp -lcurl -o build-host/config_migration_tests
+	python3 tests/run_cache_tests.py
+	python3 tests/catalog_pipeline_tests.py
 
 #---------------------------------------------------------------------------------
 all: $(BUILD)

@@ -1,45 +1,32 @@
-# PersonaFoil Status
+# PersonaFoil status
 
-## Current target
+## Implementation candidate
 
-Pre-release v0.1.0 on `feature/persona-identity`, tracked by draft PR #1.
+Target: v0.1.2, branch `feature/personafoil-next`.
+Baseline: public master `b6f85e93cd4a8cb0d0dac693e4107ba10683e21f` (v0.1.1).
+Upstream inspected: CyberFoil 1.4.6, `2089fd169e6df5879bb87c87dd555f44451c626e`.
+The baseline already includes upstream Remote/install/input changes through that
+commit. No blind merge or source replacement was performed.
 
-## Core implementation
+Implemented: typed bounded HTTP responses/ranges, release-check states, verified
+HTTPS for official services, resilient custom-index aggregation, compatibility
+negotiation/config migration, discovery pipeline/cache/browser/OpenNX presets,
+central exit confirmation/input release gate, silent error handling and improved
+persona presentation. Existing seed/UID storage and Native derivation are unchanged.
 
-- Native mode preserves CyberFoil's eMMC-CID → SHA-256 → uppercase UID behavior.
-- Persona mode uses persistent local 16-byte seeds with the same UID format.
-- Persona create/activate/rename/delete, Native fallback, diagnostics, CI, packaging, and controlled echo-server tooling are implemented.
-- **New Identity** creates and activates one saved persona in a single persisted transaction.
-- The self-updater uses stable semantic versions, exact official GitHub Release assets, SHA-256 verification, actual launch-path detection, backup, and rollback handling.
+Host validation passed for identity, updater, HTTP/TLS/redirect/range behavior,
+aggregation/negotiation/limits, migration, input gating, catalog integrity/cache
+retention and discovery publishing data. Target build and final review are pending.
+No local Switch toolchain is installed; CI provides the target build.
 
-## Real hardware observations
+## Hardware acceptance required
 
-| Check | Status |
-|---|---|
-| PersonaFoil launches on Switch | observed |
-| Persona creation / UID derivation | observed |
-| Persona activation changes displayed UID fingerprint | observed |
-| Outgoing HTTP UID changes Native → Persona | **not yet validated** |
-| Persona UID persists across restart | **not yet validated** |
-| Returning to Native reproduces original outgoing UID | **not yet validated** |
-| Verified release-to-release updater | **not yet validated** |
+The prior v0.1.1 observations do not validate this candidate. All 15 checks in
+`docs/TESTING.md` remain real-Switch gates, including outgoing identity persistence,
+OpenNX partial loading, private credentials, controller behavior, catalog cache
+and release-to-release updates. Host fixtures establish software behavior only.
 
-## Remaining release gates
+## Delivery discipline
 
-Controlled endpoint:
-
-```text
-Native -> UID A
-Persona 1 -> UID B
-restart -> UID B
-Persona 2 -> UID C
-Native -> UID A
-```
-
-Expected: A, B, and C are distinct; Persona 1 is stable across restart; Native returns exactly to A.
-
-Updater: after two real releases exist, install the older release, update in-app to the newer release, relaunch, and confirm version/config/personas/Remotes/offline DB remain intact.
-
-## Release discipline
-
-Do not merge PR #1, create a version tag, or publish a release until explicitly approved.
+Prepare a draft PR and CI installable artifact. Do not merge, tag or publish a
+stable release automatically. Plane PFOIL is the task system of record.

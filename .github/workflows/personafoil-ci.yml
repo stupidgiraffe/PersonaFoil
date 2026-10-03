@@ -6,6 +6,7 @@ on:
       - master
       - development
       - feature/persona-identity
+      - feature/personafoil-next
   pull_request:
 
 permissions:
@@ -18,7 +19,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run identity and updater tests
+      - name: Install host test dependencies
+        run: sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev libssl-dev
+
+      - name: Run host regression tests
         run: make host-test
 
   build:
