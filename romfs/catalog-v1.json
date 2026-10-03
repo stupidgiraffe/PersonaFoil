@@ -1,0 +1,47 @@
+{
+  "entries": [
+    {
+      "authentication": "unknown",
+      "compatibility": "auto",
+      "discovered_at": "2026-10-03T01:45:15Z",
+      "health": "unknown",
+      "host": "opennx.github.io",
+      "http_result": 0,
+      "id": "e2892489a8b2e13f9ae7c60c",
+      "last_checked_at": "",
+      "path": "/cyberfoil.json",
+      "port": 443,
+      "protocol": "https",
+      "provenance": "OpenNX CyberFoil feed",
+      "redirect_target": "",
+      "source_url": "https://opennx.github.io/cyberfoil.json",
+      "tags": [
+        "catalog"
+      ],
+      "title": "OpenNX"
+    },
+    {
+      "authentication": "unknown",
+      "compatibility": "auto",
+      "discovered_at": "2026-10-03T01:45:15Z",
+      "health": "unknown",
+      "host": "opennx.github.io",
+      "http_result": 0,
+      "id": "030a33689b372201b984d304",
+      "last_checked_at": "",
+      "path": "/tinfoil.json",
+      "port": 443,
+      "protocol": "https",
+      "provenance": "OpenNX Tinfoil feed",
+      "redirect_target": "",
+      "source_url": "https://opennx.github.io/tinfoil.json",
+      "tags": [
+        "catalog"
+      ],
+      "title": "OpenNX (Tinfoil feed)"
+    }
+  ],
+  "generated_at": "2026-10-03T01:45:15Z",
+  "schema_version": 1,
+  "sha256": "9d2e091e5b2f0deee274f44262fa146bd34ec28a5434d7b95a5fd92abe31b4b5"
+}
