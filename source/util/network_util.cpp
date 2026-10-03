@@ -1,3 +1,4 @@
+#include "util/remote_core.hpp"
 /*
 Copyright (c) 2017-2018 Adubbz
 
@@ -50,40 +51,11 @@ namespace tin::network
     static std::string g_basic_auth_origin;
     static bool g_basic_auth_set = false;
 
-    static std::string GetUrlOrigin(const std::string& url)
-    {
-        const std::size_t schemeEnd = url.find("://");
-        if (schemeEnd == std::string::npos || schemeEnd == 0)
-            return {};
-        const std::size_t authorityStart = schemeEnd + 3;
-        const std::size_t authorityEnd = url.find_first_of("/?#", authorityStart);
-        std::string authority = url.substr(authorityStart, authorityEnd - authorityStart);
-        const std::size_t userInfoEnd = authority.rfind('@');
-        if (userInfoEnd != std::string::npos)
-            authority.erase(0, userInfoEnd + 1);
-        if (authority.empty())
-            return {};
-
-        std::string origin = url.substr(0, schemeEnd) + "://" + authority;
-        std::transform(origin.begin(), origin.end(), origin.begin(), [](unsigned char c) {
-            return static_cast<char>(std::tolower(c));
-        });
-        return origin;
-    }
+    static std::string GetUrlOrigin(const std::string& url) { return inst::http::Origin(url); }
 
     static bool CanUseBasicAuthForUrl(const std::string& url)
     {
         return g_basic_auth_set && !g_basic_auth_origin.empty() && GetUrlOrigin(url) == g_basic_auth_origin;
-    }
-
-    static void ApplyBasicAuth(CURL* curl, std::string& authValue, const std::string& url)
-    {
-        if (!CanUseBasicAuthForUrl(url))
-            return;
-
-        authValue = g_basic_auth_user + ":" + g_basic_auth_pass;
-        curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-        curl_easy_setopt(curl, CURLOPT_USERPWD, authValue.c_str());
     }
 
     static std::string TrimCopy(const std::string& in)
@@ -116,20 +88,6 @@ namespace tin::network
         if (pos == std::string::npos)
             return in;
         return in.substr(0, pos);
-    }
-
-    static bool HasRequestHeader(const std::vector<std::string>& headers, const char* name)
-    {
-        for (const auto& header : headers) {
-            const auto colon = header.find(':');
-            if (colon == std::string::npos)
-                continue;
-            if (header.size() >= colon && std::strlen(name) == colon &&
-                std::equal(header.begin(), header.begin() + colon, name,
-                    [](unsigned char a, unsigned char b) { return std::tolower(a) == std::tolower(b); }))
-                return true;
-        }
-        return false;
     }
 
     static bool StartsWithNoCase(const std::string& text, const char* prefix)
@@ -165,7 +123,7 @@ namespace tin::network
 
     static void BuildVersionAndRevision(std::string& outVersion, std::string& outRevision)
     {
-        const std::string raw = inst::config::remoteLegacyMode ? "20.0.2" : inst::config::appVersion;
+        const std::string raw = inst::remote::ActiveCapabilities().customIndex() ? "20.0.2" : inst::config::appVersion;
         outVersion = raw.empty() ? "0.0" : raw;
         outRevision = "0";
 
@@ -210,68 +168,6 @@ namespace tin::network
         return result;
     }
 
-    struct StreamCallbackContext
-    {
-        std::function<size_t (u8* bytes, size_t size)>* streamFunc = nullptr;
-        bool hadException = false;
-        long statusCode = 0;
-        bool blockedWrongStatus = false;
-        std::string errorResponse;
-    };
-
-    static size_t RangeStatusHeaderCallback(char* bytes, size_t size, size_t numItems, void* userData)
-    {
-        auto* ctx = reinterpret_cast<StreamCallbackContext*>(userData);
-        const size_t numBytes = size * numItems;
-        if (!ctx)
-            return numBytes;
-
-        // Track the status line of the latest response (redirects update it).
-        const std::string line(bytes, numBytes);
-        if (line.rfind("HTTP/", 0) == 0)
-        {
-            const size_t space = line.find(' ');
-            if (space != std::string::npos)
-                ctx->statusCode = std::strtol(line.c_str() + space + 1, nullptr, 10);
-        }
-        return numBytes;
-    }
-
-    static size_t ParseHTMLDataCallback(char* bytes, size_t size, size_t numItems, void* userData)
-    {
-        auto* ctx = reinterpret_cast<StreamCallbackContext*>(userData);
-        if (!ctx || !ctx->streamFunc)
-            return 0;
-
-        if (inst::ui::instPage::isInstallCancelRequested())
-            return 0;
-
-        // A range request must answer 206. Anything else (200 full-body, 4xx/5xx
-        // error pages) would corrupt the destination buffer if forwarded — abort
-        // the transfer without consuming the body.
-        if (ctx->statusCode != 0 && ctx->statusCode != 206)
-        {
-            ctx->blockedWrongStatus = true;
-            constexpr size_t kMaxErrorResponseBytes = 4096;
-            const size_t numBytes = size * numItems;
-            const size_t remaining = kMaxErrorResponseBytes - std::min(kMaxErrorResponseBytes, ctx->errorResponse.size());
-            ctx->errorResponse.append(bytes, std::min(numBytes, remaining));
-            // Consume the error body so callers can report the server's actual
-            // diagnostic rather than only the HTTP status code.
-            return numBytes;
-        }
-
-        const size_t numBytes = size * numItems;
-        try {
-            if (*ctx->streamFunc != nullptr)
-                return (*ctx->streamFunc)((u8*)bytes, numBytes);
-            return numBytes;
-        } catch (...) {
-            ctx->hadException = true;
-            return 0;
-        }
-    }
-
     static int StreamHttpRangeForUrl(const std::string& url, const std::vector<std::string>& requestHeaders,
         size_t offset, size_t size, const std::function<size_t (u8* bytes, size_t size)>& streamFunc,
         std::string* outErrorResponse)
@@ -280,97 +176,62 @@ namespace tin::network
             return 0;
 
         const std::string requestUrl = TrimCopy(StripUrlFragment(url));
-        auto writeDataFunc = streamFunc;
-        StreamCallbackContext callbackCtx;
-        callbackCtx.streamFunc = &writeDataFunc;
-        CURL* curl = curl_easy_init();
-        if (!curl)
-            THROW_FORMAT("Failed to initialize curl\n");
-
-        std::stringstream ss;
-        ss << offset << "-" << (offset + size - 1);
-        const auto range = ss.str();
-
-        curl_easy_setopt(curl, CURLOPT_URL, requestUrl.c_str());
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
-        const bool legacyRequest = inst::config::remoteLegacyMode;
-        if (!legacyRequest && !HasRequestHeader(requestHeaders, "User-Agent")) {
-            const std::string& userAgent = inst::curl::getUserAgent();
-            curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent.c_str());
-        }
-        if (!legacyRequest)
-            curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "identity");
-        curl_easy_setopt(curl, CURLOPT_RANGE, range.c_str());
-        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-        curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 8L);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &callbackCtx);
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &ParseHTMLDataCallback);
-        curl_easy_setopt(curl, CURLOPT_HEADERDATA, &callbackCtx);
-        curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, &RangeStatusHeaderCallback);
-        // Robustness on flaky Wi-Fi: bound connection setup, abort stalled
-        // transfers instead of hanging forever, and keep the TCP path alive.
-        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 30L);
-        curl_easy_setopt(curl, CURLOPT_LOW_SPEED_LIMIT, 1024L);
-        curl_easy_setopt(curl, CURLOPT_LOW_SPEED_TIME, 30L);
-        curl_easy_setopt(curl, CURLOPT_TCP_KEEPALIVE, 1L);
-        curl_easy_setopt(curl, CURLOPT_TCP_KEEPIDLE, 30L);
-        curl_easy_setopt(curl, CURLOPT_TCP_KEEPINTVL, 15L);
-        std::string authValue;
+        const bool legacyRequest = inst::remote::ActiveCapabilities().customIndex();
         const bool useBasicAuth = CanUseBasicAuthForUrl(requestUrl);
-        ApplyBasicAuth(curl, authValue, requestUrl);
-
-        struct curl_slist* headerList = nullptr;
-        const std::string hauthHeader = "HAUTH: " + inst::util::ComputeHauthFromUrl(requestUrl);
-        const std::string uauthHeader = "UAUTH: " + inst::util::ComputeUauthFromUrl(
-            requestUrl,
-            useBasicAuth ? g_basic_auth_user : "",
-            useBasicAuth ? g_basic_auth_pass : "");
-        headerList = curl_slist_append(headerList, hauthHeader.c_str());
-        headerList = curl_slist_append(headerList, uauthHeader.c_str());
-        if (!legacyRequest) {
-            std::string versionValue;
-            std::string revisionValue;
-            BuildVersionAndRevision(versionValue, revisionValue);
-            const std::string themeHeader = "Theme: 0000000000000000000000000000000000000000000000000000000000000000";
-            const std::string uidHeader = "UID: " + inst::identity::GetActiveUid();
-            const std::string versionHeader = "Version: " + versionValue;
-            const std::string revisionHeader = "Revision: " + revisionValue;
-            const std::string languageHeader = "Language: " + Language::GetRemoteHeaderLanguage();
-            headerList = curl_slist_append(headerList, themeHeader.c_str());
-            headerList = curl_slist_append(headerList, languageHeader.c_str());
-            headerList = curl_slist_append(headerList, uidHeader.c_str());
-            headerList = curl_slist_append(headerList, versionHeader.c_str());
-            headerList = curl_slist_append(headerList, revisionHeader.c_str());
+        inst::http::Request request;
+        request.timeoutMs = 0;
+        request.verifyTls = false;
+        request.range = inst::http::ByteRange{offset, offset + size - 1};
+        request.maxBytes = size;
+        request.credentialOrigin = requestUrl;
+        request.userAgent = legacyRequest ? "" : inst::curl::getUserAgent();
+        if (useBasicAuth) { request.username = g_basic_auth_user; request.password = g_basic_auth_pass; }
+        const bool configuredOrigin = inst::config::remoteUrl.empty() || GetUrlOrigin(requestUrl) == GetUrlOrigin(inst::config::remoteUrl);
+        if (configuredOrigin) {
+            const std::string hauthHeader = "HAUTH: " + inst::util::ComputeHauthFromUrl(requestUrl);
+            const std::string uauthHeader = "UAUTH: " + inst::util::ComputeUauthFromUrl(
+                requestUrl,
+                useBasicAuth ? g_basic_auth_user : "",
+                useBasicAuth ? g_basic_auth_pass : "");
+            request.headers.push_back( hauthHeader);
+            request.headers.push_back( uauthHeader);
+            if (!legacyRequest) {
+                std::string versionValue;
+                std::string revisionValue;
+                BuildVersionAndRevision(versionValue, revisionValue);
+                const std::string themeHeader = "Theme: 0000000000000000000000000000000000000000000000000000000000000000";
+                const std::string uidHeader = "UID: " + inst::identity::GetActiveUid();
+                const std::string versionHeader = "Version: " + versionValue;
+                const std::string revisionHeader = "Revision: " + revisionValue;
+                const std::string languageHeader = "Language: " + Language::GetRemoteHeaderLanguage();
+                request.headers.push_back( themeHeader);
+                request.headers.push_back( languageHeader);
+                request.headers.push_back( uidHeader);
+                request.headers.push_back( versionHeader);
+                request.headers.push_back( revisionHeader);
+            }
         }
-        for (const auto& header : requestHeaders)
-            headerList = curl_slist_append(headerList, header.c_str());
-        if (headerList)
-            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerList);
+        for (const auto& header : requestHeaders) request.headers.push_back(header);
 
-        const CURLcode rc = curl_easy_perform(curl);
-        u64 httpCode = 0;
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
-        if (headerList)
-            curl_slist_free_all(headerList);
-        curl_easy_cleanup(curl);
-
+        bool callbackException = false;
+        request.writer = [&](const char* data, std::size_t bytes) {
+            if (inst::ui::instPage::isInstallCancelRequested()) return std::size_t(0);
+            try { return streamFunc(reinterpret_cast<u8*>(const_cast<char*>(data)), bytes); }
+            catch (...) { callbackException = true; return std::size_t(0); }
+        };
+        const auto response = inst::http::Get(requestUrl, request);
+        const CURLcode rc = response.curlCode;
+        const auto httpCode = response.status;
         if (outErrorResponse)
-            *outErrorResponse = callbackCtx.errorResponse;
+            *outErrorResponse = inst::http::Describe(response);
 
-        if (callbackCtx.hadException)
+        if (callbackException)
             return 1999;
 
-        if (rc == CURLE_OK && httpCode == 206)
+        if (response.ok() && httpCode == 206)
             return 0;
 
-        LOG_DEBUG("Range request failed url=%s range=%s http=%lu curl=%d wrongStatus=%d\n",
-            requestUrl.c_str(), range.c_str(), httpCode, (int)rc, (int)callbackCtx.blockedWrongStatus);
-
-        // Prefer the header-callback status: when the body was blocked because the
-        // server didn't answer 206, curl reports CURLE_WRITE_ERROR but the real
-        // cause is the HTTP status.
-        if (callbackCtx.blockedWrongStatus && callbackCtx.statusCode != 0)
-            return static_cast<int>(callbackCtx.statusCode);
+        LOG_DEBUG("Range request failed http=%ld curl=%d\n", httpCode, static_cast<int>(rc));
 
         if (httpCode != 0 && httpCode != 206)
             return static_cast<int>(httpCode);
@@ -408,70 +269,20 @@ namespace tin::network
     {
     }
 
-    size_t HTTPHeader::ParseHTMLHeader(char* bytes, size_t size, size_t numItems, void* userData)
-    {
-        HTTPHeader* header = reinterpret_cast<HTTPHeader*>(userData);
-        size_t numBytes = size * numItems;
-        std::string line(bytes, numBytes);
-
-        line.erase(std::remove(line.begin(), line.end(), '\n'), line.end());
-        line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
-
-        if (!line.empty())
-        {
-            auto keyEnd = line.find(": ");
-
-            if (keyEnd != 0)
-            {
-                std::string key = line.substr(0, keyEnd);
-                std::string value = line.substr(keyEnd + 2);
-
-                std::transform(key.begin(), key.end(), key.begin(), ::tolower);
-                header->m_values[key] = value;
-            }
-        }
-
-        return numBytes;
-    }
-
     void HTTPHeader::PerformRequest()
     {
-        m_values.clear();
-
-        CURL* curl = curl_easy_init();
-        CURLcode rc = (CURLcode)0;
-
-        if (!curl)
-        {
-            THROW_FORMAT("Failed to initialize curl\n");
+        inst::http::Request request;
+        request.head = true;
+        request.verifyTls = false;
+        request.userAgent = inst::curl::getUserAgent();
+        request.credentialOrigin = g_basic_auth_origin;
+        if (CanUseBasicAuthForUrl(m_url)) {
+            request.username = g_basic_auth_user;
+            request.password = g_basic_auth_pass;
         }
-
-        curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
-        curl_easy_setopt(curl, CURLOPT_NOBODY, true);
-        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-        curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 8L);
-        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, false);
-        const std::string& userAgent = inst::curl::getUserAgent();
-        curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent.c_str());
-        curl_easy_setopt(curl, CURLOPT_HEADERDATA, this);
-        curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, &tin::network::HTTPHeader::ParseHTMLHeader);
-        std::string authValue;
-        ApplyBasicAuth(curl, authValue, m_url);
-
-        rc = curl_easy_perform(curl);
-        if (rc != CURLE_OK)
-        {
-            THROW_FORMAT("Failed to retrieve HTTP Header: %s\n", curl_easy_strerror(rc));
-        }
-
-        u64 httpCode = 0;
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
-        curl_easy_cleanup(curl);
-
-        if (httpCode != 200 && httpCode != 204)
-        {
-            THROW_FORMAT("Unexpected HTTP response code when retrieving header: %lu\n", httpCode);
-        }
+        const auto response = inst::http::Get(m_url, request);
+        if (!response.ok()) THROW_FORMAT("Failed to retrieve HTTP header: %s\n", inst::http::Describe(response).c_str());
+        m_values = response.headers;
     }
 
     bool HTTPHeader::HasValue(std::string key)

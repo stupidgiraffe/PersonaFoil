@@ -3,6 +3,7 @@
 #include "ui/bottomHint.hpp"
 #include "util/config.hpp"
 #include "identity/identity.hpp"
+#include "util/catalog.hpp"
 
 using namespace pu::ui::elm;
 namespace inst::ui {
@@ -50,6 +51,9 @@ namespace inst::ui {
             int selectedSection = 0;
             bool tabsFocused = false;
             bool remoteListVisible = false;
+            bool discoveryVisible = false;
+            inst::catalog::Catalog discoveryCatalog;
+            Rectangle::Ref identityAccent;
             bool remoteFormVisible = false;
             bool remoteProtocolDropdownVisible = false;
             bool remoteModeDropdownVisible = false;
@@ -75,6 +79,9 @@ namespace inst::ui {
             void setSettingsMenuText();
             void refreshOptions(bool resetSelection = false);
             void openRemoteList(int selectedIndex = 0);
+            void openDiscovery();
+            void refreshDiscovery();
+            void inspectCatalogEntry(const inst::catalog::Entry& entry);
             void closeRemoteList();
             void manageRemote(const inst::config::RemoteProfile& remote);
             void openRemoteForm(const inst::config::RemoteProfile& remote, bool wasActive, bool returnToList, int returnIndex = 0);

@@ -1,10 +1,11 @@
 #pragma once
 
 #include <functional>
+#include "util/http.hpp"
 #include <string>
 
 namespace inst::update {
-    enum class CheckStatus { Error, UpToDate, UpdateAvailable };
+    enum class CheckStatus { Error, NoRelease, UpToDate, UpdateAvailable };
 
     struct ReleaseInfo {
         std::string version;
@@ -30,6 +31,7 @@ namespace inst::update {
 
     void SetRunningNroPath(const std::string& path);
     std::string GetRunningNroPath();
+    CheckResult ParseReleaseResponse(const inst::http::Result& response, const std::string& currentVersion);
     CheckResult CheckForUpdate(const std::string& currentVersion);
     InstallResult InstallUpdate(const ReleaseInfo& release, const ProgressCallback& progress = {});
 }

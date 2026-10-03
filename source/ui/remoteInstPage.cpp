@@ -1,3 +1,4 @@
+#include "util/remote_core.hpp"
 #include <algorithm>
 #include <cstdio>
 #include <filesystem>
@@ -1418,7 +1419,9 @@ namespace inst::ui {
             return;
         }
         const auto& section = this->remoteSections[this->selectedSectionIndex];
-        this->pageInfoText->SetText(section.title);
+        const auto report = inst::remote::LastReport();
+        const std::string status = report.warnings.empty() ? "" : " · " + std::to_string(report.usableSources) + " sources · " + std::to_string(report.warnings.size()) + " unavailable";
+        this->pageInfoText->SetText(section.title + status);
         this->pageInfoText->SetY(81);
         CenterTextX(this->pageInfoText);
         std::string rightInfo;
@@ -1564,7 +1567,7 @@ namespace inst::ui {
     {
         switch (this->browseSortMode) {
             case BrowseSortMode::DateDesc:
-                return inst::config::remoteLegacyMode ? "Release Date" : "Date";
+                return inst::remote::ActiveCapabilities().customIndex() ? "Release Date" : "Date";
             case BrowseSortMode::NameAsc:
                 return "Name";
             default:
@@ -1629,7 +1632,7 @@ namespace inst::ui {
             };
         } else {
             options = {
-                inst::config::remoteLegacyMode ? "Sort by Release Date" : "Sort by Date",
+                inst::remote::ActiveCapabilities().customIndex() ? "Sort by Release Date" : "Sort by Date",
                 "Sort by Name",
                 "Use Remote Order"
             };
@@ -2008,6 +2011,7 @@ namespace inst::ui {
         else {
             std::string buttonsText = "inst.remote.buttons_all"_lang;
             buttonsText += "    \xEE\x83\x85 Sort";
+            if (!inst::remote::LastReport().warnings.empty()) buttonsText += "    + Sources";
             this->setButtonsText(buttonsText);
         }
     }
@@ -2932,7 +2936,7 @@ namespace inst::ui {
             section.items = std::move(filtered);
         }
 
-        if (inst::config::remoteLegacyMode || this->catalogCacheUsedLegacyFallback) {
+        if (inst::remote::ActiveCapabilities().customIndex() || this->catalogCacheUsedLegacyFallback) {
             for (auto& section : this->remoteSections) {
                 if (section.items.empty())
                     continue;
@@ -3830,17 +3834,19 @@ namespace inst::ui {
         this->setLoadingProgress(loadingPercent, true);
         mainApp->CallForRender();
 
-        const std::string cacheKey = remoteUrl + "\n" + inst::config::remoteUser + "\n" + inst::config::remotePass + "\n" + (inst::config::remoteLegacyMode ? "1" : "0");
+        const std::string cacheKey = remoteUrl + "\n" + inst::config::remoteUser + "\n" + inst::config::remotePass + "\n" + std::string(inst::remote::CompatibilityName(inst::config::remoteCompatibility)) + "\n" + inst::identity::GetActiveUid();
         const bool canUseCatalogCache = !forceRefresh
             && this->catalogCacheValid
             && this->catalogCacheKey == cacheKey
             && !this->catalogCacheSections.empty()
-            && (!this->catalogCacheUsedLegacyFallback || inst::config::remoteLegacyMode);
+            ;
 
         if (canUseCatalogCache) {
             updateLoadingProgress(89, "Using cached catalog...", true);
             this->remoteSections = this->catalogCacheSections;
             usedLegacyFallback = this->catalogCacheUsedLegacyFallback;
+            inst::remote::SetActiveCapabilities(this->catalogCacheCapabilities);
+            inst::remote::SetLastReport(this->catalogCacheReport);
         } else {
             std::atomic<bool> fetchDone{false};
             std::atomic<std::uint64_t> fetchDownloaded{0};
@@ -3932,33 +3938,27 @@ namespace inst::ui {
             this->remoteSections = std::move(fetchedSections);
             error = fetchError;
             usedLegacyFallback = fetchUsedLegacyFallback;
-            if (error.empty() && !this->remoteSections.empty() &&
-                (!usedLegacyFallback || inst::config::remoteLegacyMode)) {
+            if (error.empty() && !this->remoteSections.empty()) {
                 this->catalogCacheValid = true;
                 this->catalogCacheKey = cacheKey;
                 this->catalogCacheUsedLegacyFallback = usedLegacyFallback;
                 this->catalogCacheSections = this->remoteSections;
+                this->catalogCacheReport = inst::remote::LastReport();
+                this->catalogCacheCapabilities = inst::remote::ActiveCapabilities();
             }
         }
         updateLoadingProgress(90, "Parsing Remote response...");
-        this->saveSyncEnabled = !usedLegacyFallback && !inst::config::remoteLegacyMode;
+        this->saveSyncEnabled = !usedLegacyFallback;
         RemoteDlcTrace("FetchRemoteSections done sections=%llu errorLen=%llu", static_cast<unsigned long long>(this->remoteSections.size()), static_cast<unsigned long long>(error.size()));
         RemoteDlcTrace(
             "save sync eligibility legacyFallback=%d tinfoilMode=%d enabled=%d",
             usedLegacyFallback ? 1 : 0,
-            inst::config::remoteLegacyMode ? 1 : 0,
+            inst::remote::ActiveCapabilities().customIndex() ? 1 : 0,
             this->saveSyncEnabled ? 1 : 0
         );
         if (!error.empty()) {
             RemoteDlcTrace("FetchRemoteSections error: %s", error.c_str());
-            std::string audioPath = "romfs:/audio/bark.wav";
-            if (!inst::config::soundEnabled)
-                audioPath.clear();
-            else if (std::filesystem::exists(inst::config::appDir + "/bark.wav"))
-                audioPath = inst::config::appDir + "/bark.wav";
-            std::thread errorSound(inst::util::playAudio, audioPath);
             mainApp->CreateShowDialog("inst.remote.failed"_lang, error, {"common.ok"_lang}, true);
-            errorSound.join();
             mainApp->LoadLayout(mainApp->mainPage);
             return;
         }
@@ -4366,6 +4366,14 @@ namespace inst::ui {
         }
         if (this->handleSaveVersionSelectorInput(Down, Up, Held, Pos))
             return;
+        if (Down & HidNpadButton_Plus) {
+            const auto report = inst::remote::LastReport();
+            std::string body = "Loaded sources: " + std::to_string(report.usableSources) + "\nUnavailable: " + std::to_string(report.warnings.size());
+            for (std::size_t i = 0; i < report.warnings.size() && i < 8; ++i)
+                body += "\n\n" + inst::http::Origin(report.warnings[i].endpoint) + "\n" + report.warnings[i].message;
+            mainApp->CreateShowDialog("Remote source status", body, {"common.ok"_lang}, true);
+            return;
+        }
         if (this->pendingMotdFetch && Down == 0 && Up == 0 && Held == 0 && Pos.IsEmpty()) {
             this->pendingMotdFetch = false;
             std::string motd = remoteInstStuff::FetchRemoteMotd(this->activeRemoteUrl, inst::config::remoteUser, inst::config::remotePass);
@@ -4376,6 +4384,7 @@ namespace inst::ui {
         if (Down & HidNpadButton_B) {
             this->updateRememberedSelection();
             mainApp->LoadLayout(mainApp->mainPage);
+            return;
         }
         if (Down & HidNpadButton_Minus) {
             this->remoteGridMode = !this->remoteGridMode;

@@ -1,3 +1,4 @@
+#include "util/remote_core.hpp"
 #include <algorithm>
 #include <cctype>
 #include <chrono>
@@ -658,7 +659,7 @@ namespace {
 
     void BuildVersionAndRevision(std::string& outVersion, std::string& outRevision)
     {
-        const std::string raw = inst::config::remoteLegacyMode ? "20.0.2" : inst::config::appVersion;
+        const std::string raw = inst::remote::ActiveCapabilities().customIndex() ? "20.0.2" : inst::config::appVersion;
         outVersion = raw.empty() ? "0.0" : raw;
         outRevision = "0";
 
@@ -729,7 +730,7 @@ namespace {
         }
 
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 0L);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
         const std::string& userAgent = inst::curl::getUserAgent();
@@ -797,7 +798,7 @@ namespace {
 
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
-        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 0L);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
         const std::string& userAgent = inst::curl::getUserAgent();
@@ -834,9 +835,13 @@ namespace {
         return true;
     }
 
-    bool HttpDownloadFileWithAuthAndProgress(const std::string& url, const std::string& outputPath, const std::string& user, const std::string& pass, long timeoutMs, std::string& error)
+    bool HttpDownloadFileWithAuthAndProgress(const std::string& url, const std::string& outputPath, const std::string& user, const std::string& pass, const std::string& trustedOrigin, long timeoutMs, std::string& error)
     {
         error.clear();
+        if (inst::http::CanonicalUrl(url).empty()) {
+            error = "Invalid save download address.";
+            return false;
+        }
         if (curl_global_init(CURL_GLOBAL_ALL) != CURLE_OK) {
             error = "Failed to initialize HTTP client.";
             return false;
@@ -857,7 +862,7 @@ namespace {
 
         UiProgressThrottle throttle{};
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 0L);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, nullptr);
@@ -892,14 +897,15 @@ namespace {
         curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &throttle);
 
         struct curl_slist* headerList = nullptr;
-        const auto headers = BuildRemoteHeaders(url, user, pass);
+        const bool trusted = !inst::http::Origin(trustedOrigin).empty() && inst::http::Origin(url) == inst::http::Origin(trustedOrigin);
+        const auto headers = trusted ? BuildRemoteHeaders(url, user, pass) : std::vector<std::string>{};
         for (const auto& header : headers)
             headerList = curl_slist_append(headerList, header.c_str());
         if (headerList)
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerList);
 
         std::string authValue;
-        if (!user.empty() || !pass.empty()) {
+        if (trusted && (!user.empty() || !pass.empty())) {
             authValue = user + ":" + pass;
             curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
             curl_easy_setopt(curl, CURLOPT_USERPWD, authValue.c_str());
@@ -1034,7 +1040,7 @@ namespace {
         std::string responseBody;
         const std::string titleIdText = FormatTitleIdHex(titleId);
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 0L);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
         const std::string& userAgent = inst::curl::getUserAgent();
@@ -1468,7 +1474,7 @@ namespace inst::save_sync {
 
         inst::ui::instPage::setInstBarPerc(10);
         inst::ui::instPage::setProgressDetailText("inst.remote.save_sync.progress.starting_download"_lang);
-        if (!HttpDownloadFileWithAuthAndProgress(downloadUrl, archivePath.string(), user, pass, 60000, error)) {
+        if (!HttpDownloadFileWithAuthAndProgress(downloadUrl, archivePath.string(), user, pass, remoteUrl, 60000, error)) {
             if (error.empty())
                 error = "Failed to download save archive from server.";
             return false;

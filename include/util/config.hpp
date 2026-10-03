@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include "util/remote_core.hpp"
 #include <string>
 #include <vector>
 
@@ -48,7 +49,8 @@ namespace inst::config {
     extern bool remoteHideInstalledSection;
     extern bool remoteHideIncompatibleCheats;
     extern bool remoteAllBaseOnly;
-    extern bool remoteLegacyMode;
+    extern bool remoteLegacyMode; // Compatibility key for older builds.
+    extern inst::remote::Compatibility remoteCompatibility;
     extern bool remoteStartGridMode;
     extern bool offlineDbAutoCheckOnStartup;
     extern bool verboseInstallLogging;
@@ -63,7 +65,8 @@ namespace inst::config {
         std::string password;
         std::string title;
         bool favourite = false;
-        bool legacyMode = false;
+        bool legacyMode = false; // Written for older builds; compatibility is authoritative.
+        inst::remote::Compatibility compatibility = inst::remote::Compatibility::Auto;
         std::int64_t updatedAt = 0;
     };
 

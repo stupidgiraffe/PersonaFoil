@@ -51,7 +51,6 @@ namespace tin::network
             std::string m_url;
             std::map<std::string, std::string> m_values;
 
-            static size_t ParseHTMLHeader(char* bytes, size_t size, size_t numItems, void* userData);
 
         public:
             HTTPHeader(std::string url);

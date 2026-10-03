@@ -1,0 +1,6 @@
+{
+  "sources": [
+    {"url": "https://opennx.github.io/cyberfoil.json", "title": "OpenNX", "name": "OpenNX CyberFoil feed", "discover_directories": true},
+    {"url": "https://opennx.github.io/tinfoil.json", "title": "OpenNX (Tinfoil feed)", "name": "OpenNX Tinfoil feed", "discover_directories": true}
+  ]
+}

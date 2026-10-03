@@ -34,6 +34,7 @@ namespace inst::config {
     bool remoteHideIncompatibleCheats;
     bool remoteAllBaseOnly;
     bool remoteLegacyMode;
+    inst::remote::Compatibility remoteCompatibility = inst::remote::Compatibility::Auto;
     bool remoteStartGridMode;
     bool offlineDbAutoCheckOnStartup;
     bool verboseInstallLogging;
@@ -82,7 +83,7 @@ namespace inst::config {
         std::string RemoteDedupKey(const inst::config::RemoteProfile& remote)
         {
             return inst::config::BuildRemoteUrl(remote) + "\x1f" + Trim(remote.username) + "\x1f" + Trim(remote.password) +
-                "\x1f" + (remote.legacyMode ? "legacy" : "cyberfoil");
+                "\x1f" + inst::remote::CompatibilityName(remote.compatibility);
         }
 
         bool ParseBoolTextValue(const std::string& value, bool& out)
@@ -175,7 +176,8 @@ namespace inst::config {
                     {"password", normalized.password},
                     {"title", normalized.title},
                     {"favourite", normalized.favourite},
-                    {"legacyMode", normalized.legacyMode}
+                    {"compatibility", inst::remote::CompatibilityName(normalized.compatibility)},
+                    {"legacyMode", normalized.compatibility == inst::remote::Compatibility::Tinfoil}
                 }}
             };
         }
@@ -321,6 +323,8 @@ namespace inst::config {
                 parsed.title = remoteNode->value("title", "");
                 if (remoteNode->contains("legacyMode") && (*remoteNode)["legacyMode"].is_boolean())
                     parsed.legacyMode = (*remoteNode)["legacyMode"].get<bool>();
+                parsed.compatibility = inst::remote::ReadCompatibility(*remoteNode);
+                parsed.legacyMode = parsed.compatibility == inst::remote::Compatibility::Tinfoil;
 
                 if (!remoteNode->contains("host") || !(*remoteNode)["host"].is_string())
                     needsRewrite = true;
@@ -555,6 +559,7 @@ namespace inst::config {
             migrated.password = inst::config::remotePass;
             migrated.title = path.empty() ? host : (host + path);
             migrated.favourite = false;
+            migrated.compatibility = inst::config::remoteCompatibility;
 
             std::string ignored;
             inst::config::SaveRemote(migrated, &ignored);
@@ -735,7 +740,9 @@ namespace inst::config {
         inst::config::remoteUrl = url;
         inst::config::remoteUser = remote.username;
         inst::config::remotePass = remote.password;
-        inst::config::remoteLegacyMode = remote.legacyMode;
+        inst::config::remoteCompatibility = remote.compatibility;
+        inst::config::remoteLegacyMode = remote.compatibility == inst::remote::Compatibility::Tinfoil;
+        inst::remote::SetActiveCapabilities({});
         if (inst::config::remoteLegacyMode) {
             inst::config::httpUserAgentMode = "tinfoil";
             inst::config::httpUserAgent.clear();
@@ -773,7 +780,8 @@ namespace inst::config {
             {"remoteHideInstalledSection", remoteHideInstalledSection},
             {"remoteHideIncompatibleCheats", remoteHideIncompatibleCheats},
             {"remoteAllBaseOnly", remoteAllBaseOnly},
-            {"remoteLegacyMode", remoteLegacyMode},
+            {"remoteCompatibility", inst::remote::CompatibilityName(remoteCompatibility)},
+            {"remoteLegacyMode", remoteCompatibility == inst::remote::Compatibility::Tinfoil},
             {"remoteStartGridMode", remoteStartGridMode},
             {"offlineDbAutoCheckOnStartup", offlineDbAutoCheckOnStartup},
             {"verboseInstallLogging", verboseInstallLogging},
@@ -809,6 +817,7 @@ namespace inst::config {
         remoteHideIncompatibleCheats = false;
         remoteAllBaseOnly = true;
         remoteLegacyMode = false;
+        remoteCompatibility = inst::remote::Compatibility::Auto;
         remoteStartGridMode = false;
         offlineDbAutoCheckOnStartup = true;
         verboseInstallLogging = false;
@@ -845,7 +854,8 @@ namespace inst::config {
             if (j.contains("remoteHideInstalledSection")) remoteHideInstalledSection = j["remoteHideInstalledSection"].get<bool>();
             if (j.contains("remoteHideIncompatibleCheats")) remoteHideIncompatibleCheats = j["remoteHideIncompatibleCheats"].get<bool>();
             if (j.contains("remoteAllBaseOnly")) remoteAllBaseOnly = j["remoteAllBaseOnly"].get<bool>();
-            if (j.contains("remoteLegacyMode")) remoteLegacyMode = j["remoteLegacyMode"].get<bool>();
+            remoteCompatibility = inst::remote::ReadCompatibility(j, "remoteCompatibility", "remoteLegacyMode");
+            remoteLegacyMode = remoteCompatibility == inst::remote::Compatibility::Tinfoil;
             if (j.contains("remoteStartGridMode")) remoteStartGridMode = j["remoteStartGridMode"].get<bool>();
             if (j.contains("offlineDbAutoCheckOnStartup")) offlineDbAutoCheckOnStartup = j["offlineDbAutoCheckOnStartup"].get<bool>();
             if (j.contains("verboseInstallLogging")) verboseInstallLogging = j["verboseInstallLogging"].get<bool>();

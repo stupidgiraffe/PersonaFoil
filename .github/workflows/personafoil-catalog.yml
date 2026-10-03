@@ -1,0 +1,30 @@
+name: PersonaFoil shop catalog
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * *'
+permissions:
+  contents: write
+concurrency:
+  group: personafoil-catalog
+  cancel-in-progress: false
+jobs:
+  catalog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Recover last-good catalog
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api repos/stupidgiraffe/PersonaFoil/contents/catalog-v1.json?ref=catalog-data --jq .content > /tmp/catalog-base64; then
+            base64 --decode /tmp/catalog-base64 > /tmp/catalog-previous.json
+          else
+            cp romfs/catalog-v1.json /tmp/catalog-previous.json
+          fi
+      - name: Discover public configuration and probe health
+        run: python3 tools/build_catalog.py --previous /tmp/catalog-previous.json --output /tmp/catalog-v1.json
+      - name: Publish transactionally on catalog-data
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/publish_catalog.py /tmp/catalog-v1.json

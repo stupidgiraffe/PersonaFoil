@@ -4,6 +4,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include "util/remote_core.hpp"
 
 namespace remoteInstStuff {
     using RemoteFetchProgressCallback = std::function<void(std::uint64_t downloaded, std::uint64_t total)>;
@@ -47,6 +48,7 @@ namespace remoteInstStuff {
     std::vector<RemoteSection> FetchRemoteSections(const std::string& remoteUrl, const std::string& user, const std::string& pass, std::string& error, bool* outUsedLegacyFallback = nullptr, const RemoteFetchProgressCallback& progressCb = RemoteFetchProgressCallback());
     std::string FetchRemoteMotd(const std::string& remoteUrl, const std::string& user, const std::string& pass);
     std::string GetRemoteApiPrefix();
+    inst::remote::Negotiation ProbeRemote(const std::string& url, const std::string& user, const std::string& pass, inst::remote::Compatibility mode);
     bool DownloadCheatText(const RemoteItem& item, const std::string& user, const std::string& pass, std::string& text, std::string& error);
     bool UploadCheatText(const std::string& remoteUrl, const std::string& user, const std::string& pass, const std::string& titleId, const std::string& buildId, const std::string& note, const std::string& text, std::string& error);
     void installTitleRemote(const std::vector<RemoteItem>& items, int storage, const std::string& sourceLabel);

@@ -190,3 +190,19 @@ GitHub's repository funding configuration also points to the same Buy Me a Coffe
 ## Credits and license
 
 PersonaFoil is derived from [CyberFoil](https://github.com/luketanti/CyberFoil) and incorporates code under the licenses preserved in this repository. PersonaFoil itself remains distributed under the [GNU GPL v3](LICENSE).
+
+## Next-generation candidate
+
+The `feature/personafoil-next` branch targets v0.1.2. Settings → Remote →
+**Discover Shops** includes offline OpenNX presets, catalog browsing, endpoint
+health/provenance and Add/Test/Saved actions. **Auto** compatibility detects modern
+sections or custom indexes; advanced overrides remain available. Failed child
+sources no longer invalidate a usable aggregate.
+
+Home B and Exit share a confirmation. Error audio is silent; navigation and
+successful-install sounds remain optional. The Identity section highlights the
+current identity, Native fallback, active personas, fingerprints and New Persona.
+
+See [Discovery](docs/DISCOVERY.md), [network trust](docs/NETWORK_SECURITY.md),
+[status](STATUS.md) and the [hardware acceptance matrix](docs/TESTING.md).
+Candidate builds are CI artifacts; these changes are not a published stable release.

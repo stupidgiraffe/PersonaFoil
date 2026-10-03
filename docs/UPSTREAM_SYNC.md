@@ -26,3 +26,13 @@ Identity-sensitive conflicts require special review:
 5. Repeat controlled Native/Persona A/Persona B/restart testing before release.
 
 Do not resolve conflicts by moving hardware CID access into networking or by duplicating persona conditionals across request implementations.
+
+## 2026-10-03 comparison
+
+PersonaFoil baseline `b6f85e9` descends from CyberFoil master `2089fd1` (1.4.6).
+Fresh upstream fetch contained no newer master changes. Remote recursive indexes,
+download header propagation, cheats/save-sync, loading/caching, firmware/install
+paths and Plutonium input behavior were inspected on both sides. This candidate
+reuses that implementation and corrects strict child failures and navigation
+propagation locally. Identity derivation/storage, diagnostics and updater safety
+remain PersonaFoil-owned. No additional upstream port was required.
