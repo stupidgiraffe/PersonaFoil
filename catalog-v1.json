@@ -1,0 +1,267 @@
+{
+  "entries": [
+    {
+      "authentication": "unknown",
+      "compatibility": "auto",
+      "discovered_at": "2026-10-03T01:56:19Z",
+      "health": "offline",
+      "host": "cyrilz87.net",
+      "http_result": 0,
+      "id": "0781dded20534ae2a99942b1",
+      "last_checked_at": "2026-10-03T01:56:19Z",
+      "path": "/",
+      "port": 443,
+      "protocol": "https",
+      "provenance": "OpenNX Tinfoil feed",
+      "redirect_target": "",
+      "source_url": "https://opennx.github.io/tinfoil.json",
+      "tags": [
+        "catalog"
+      ],
+      "title": "cyrilz87.net"
+    },
+    {
+      "authentication": "unknown",
+      "compatibility": "auto",
+      "discovered_at": "2026-10-03T01:56:19Z",
+      "health": "invalid_response",
+      "host": "free.worldigital-brasil.com",
+      "http_result": 200,
+      "id": "566f7d3a3097c36a457413c5",
+      "last_checked_at": "2026-10-03T01:56:19Z",
+      "path": "/",
+      "port": 443,
+      "protocol": "https",
+      "provenance": "OpenNX CyberFoil feed",
+      "redirect_target": "",
+      "source_url": "https://opennx.github.io/cyberfoil.json",
+      "tags": [
+        "catalog"
+      ],
+      "title": "free.worldigital-brasil.com"
+    },
+    {
+      "authentication": "unknown",
+      "compatibility": "auto",
+      "discovered_at": "2026-10-03T01:56:19Z",
+      "health": "invalid_response",
+      "host": "gandalfsax.com",
+      "http_result": 200,
+      "id": "6a79df01c491271276b4a11a",
+      "last_checked_at": "2026-10-03T01:56:19Z",
+      "path": "/",
+      "port": 443,
+      "protocol": "https",
+      "provenance": "OpenNX CyberFoil feed",
+      "redirect_target": "",
+      "source_url": "https://opennx.github.io/cyberfoil.json",
+      "tags": [
+        "catalog"
+      ],
+      "title": "gandalfsax.com"
+    },
+    {
+      "authentication": "unknown",
+      "compatibility": "auto",
+      "discovered_at": "2026-10-03T01:56:19Z",
+      "health": "degraded",
+      "host": "magicmonkei.com",
+      "http_result": 403,
+      "id": "0d873204974d56ea570fcc85",
+      "last_checked_at": "2026-10-03T01:56:19Z",
+      "path": "/",
+      "port": 443,
+      "protocol": "https",
+      "provenance": "OpenNX CyberFoil feed",
+      "redirect_target": "https://www.magicmonkei.com/",
+      "source_url": "https://opennx.github.io/cyberfoil.json",
+      "tags": [
+        "catalog"
+      ],
+      "title": "magicmonkei.com"
+    },
+    {
+      "authentication": "unknown",
+      "compatibility": "auto",
+      "discovered_at": "2026-10-03T01:56:19Z",
+      "health": "offline",
+      "host": "myrincon.es",
+      "http_result": 0,
+      "id": "0a32944da2aa815fd60fc77a",
+      "last_checked_at": "2026-10-03T01:56:19Z",
+      "path": "/net/Zenten",
+      "port": 443,
+      "protocol": "https",
+      "provenance": "OpenNX CyberFoil feed",
+      "redirect_target": "",
+      "source_url": "https://opennx.github.io/cyberfoil.json",
+      "tags": [
+        "catalog"
+      ],
+      "title": "myrincon.es"
+    },
+    {
+      "authentication": "unknown",
+      "compatibility": "auto",
+      "discovered_at": "2026-10-03T01:56:19Z",
+      "health": "invalid_response",
+      "host": "nx-meta.nlib.cc",
+      "http_result": 200,
+      "id": "1484b38acbdafc539337f1f2",
+      "last_checked_at": "2026-10-03T01:56:19Z",
+      "path": "/",
+      "port": 443,
+      "protocol": "https",
+      "provenance": "OpenNX Tinfoil feed",
+      "redirect_target": "",
+      "source_url": "https://opennx.github.io/tinfoil.json",
+      "tags": [
+        "catalog"
+      ],
+      "title": "nx-meta.nlib.cc"
+    },
+    {
+      "authentication": "unknown",
+      "compatibility": "auto",
+      "discovered_at": "2026-10-03T01:56:19Z",
+      "health": "invalid_response",
+      "host": "nx-retro.ghostland.at",
+      "http_result": 200,
+      "id": "0a698752d632bcbca79fca07",
+      "last_checked_at": "2026-10-03T01:56:19Z",
+      "path": "/",
+      "port": 443,
+      "protocol": "https",
+      "provenance": "OpenNX CyberFoil feed",
+      "redirect_target": "",
+      "source_url": "https://opennx.github.io/cyberfoil.json",
+      "tags": [
+        "catalog"
+      ],
+      "title": "nx-retro.ghostland.at"
+    },
+    {
+      "authentication": "unknown",
+      "compatibility": "auto",
+      "discovered_at": "2026-10-03T01:56:19Z",
+      "health": "offline",
+      "host": "nx-saves.ghostland.at",
+      "http_result": 0,
+      "id": "aa2f13cf46eba5358d998cdc",
+      "last_checked_at": "2026-10-03T01:56:19Z",
+      "path": "/",
+      "port": 443,
+      "protocol": "https",
+      "provenance": "OpenNX CyberFoil feed",
+      "redirect_target": "",
+      "source_url": "https://opennx.github.io/cyberfoil.json",
+      "tags": [
+        "catalog"
+      ],
+      "title": "nx-saves.ghostland.at"
+    },
+    {
+      "authentication": "unknown",
+      "compatibility": "auto",
+      "discovered_at": "2026-10-03T01:56:19Z",
+      "health": "invalid_response",
+      "host": "nx.ghostland.at",
+      "http_result": 200,
+      "id": "a91e0f68031d656a408fe2ec",
+      "last_checked_at": "2026-10-03T01:56:19Z",
+      "path": "/",
+      "port": 443,
+      "protocol": "https",
+      "provenance": "OpenNX CyberFoil feed",
+      "redirect_target": "",
+      "source_url": "https://opennx.github.io/cyberfoil.json",
+      "tags": [
+        "catalog"
+      ],
+      "title": "nx.ghostland.at"
+    },
+    {
+      "authentication": "none",
+      "compatibility": "auto",
+      "discovered_at": "2026-10-03T01:45:15Z",
+      "health": "online",
+      "host": "opennx.github.io",
+      "http_result": 200,
+      "id": "e2892489a8b2e13f9ae7c60c",
+      "last_checked_at": "2026-10-03T01:56:19Z",
+      "path": "/cyberfoil.json",
+      "port": 443,
+      "protocol": "https",
+      "provenance": "OpenNX CyberFoil feed",
+      "redirect_target": "",
+      "source_url": "https://opennx.github.io/cyberfoil.json",
+      "tags": [
+        "catalog"
+      ],
+      "title": "OpenNX"
+    },
+    {
+      "authentication": "none",
+      "compatibility": "auto",
+      "discovered_at": "2026-10-03T01:45:15Z",
+      "health": "online",
+      "host": "opennx.github.io",
+      "http_result": 200,
+      "id": "030a33689b372201b984d304",
+      "last_checked_at": "2026-10-03T01:56:19Z",
+      "path": "/tinfoil.json",
+      "port": 443,
+      "protocol": "https",
+      "provenance": "OpenNX Tinfoil feed",
+      "redirect_target": "",
+      "source_url": "https://opennx.github.io/tinfoil.json",
+      "tags": [
+        "catalog"
+      ],
+      "title": "OpenNX (Tinfoil feed)"
+    },
+    {
+      "authentication": "unknown",
+      "compatibility": "auto",
+      "discovered_at": "2026-10-03T01:56:19Z",
+      "health": "invalid_response",
+      "host": "pixelgoblin.link",
+      "http_result": 200,
+      "id": "d3ed28a05c4ddcb25cec8d8c",
+      "last_checked_at": "2026-10-03T01:56:19Z",
+      "path": "/",
+      "port": 443,
+      "protocol": "https",
+      "provenance": "OpenNX Tinfoil feed",
+      "redirect_target": "",
+      "source_url": "https://opennx.github.io/tinfoil.json",
+      "tags": [
+        "catalog"
+      ],
+      "title": "pixelgoblin.link"
+    },
+    {
+      "authentication": "unknown",
+      "compatibility": "auto",
+      "discovered_at": "2026-10-03T01:56:19Z",
+      "health": "offline",
+      "host": "tinyurl.com",
+      "http_result": 0,
+      "id": "9bffd36e82744cba160d5968",
+      "last_checked_at": "2026-10-03T01:56:19Z",
+      "path": "/4c5p9ww7",
+      "port": 443,
+      "protocol": "https",
+      "provenance": "OpenNX Tinfoil feed",
+      "redirect_target": "",
+      "source_url": "https://opennx.github.io/tinfoil.json",
+      "tags": [
+        "catalog"
+      ],
+      "title": "tinyurl.com"
+    }
+  ],
+  "generated_at": "2026-10-03T01:56:19Z",
+  "schema_version": 1,
+  "sha256": "0c64aa89b562c59afaf420512f0e082b32f0627053f4f4751724a31d39c309da"
+}
