@@ -342,7 +342,7 @@ namespace inst::offline::dbupdate
         bool FetchManifest(const std::string& manifestUrl, ManifestData& outManifest, std::string& outManifestText, std::string& error)
         {
             OfflineDbTrace("FetchManifest start url='%s'", manifestUrl.c_str());
-            outManifestText = inst::curl::downloadToBuffer(manifestUrl, 0, 0, 10000);
+            outManifestText = inst::curl::downloadToBuffer(manifestUrl, 10000);
             if (outManifestText.empty()) {
                 error = "Failed to download manifest.";
                 OfflineDbTrace("FetchManifest fail: empty response");

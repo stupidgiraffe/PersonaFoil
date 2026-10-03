@@ -22,16 +22,6 @@ namespace inst::update {
         std::mutex gPathMutex;
         std::string gRunningNroPath;
 
-        std::string NormalizeReleaseNotes(std::string text)
-        {
-            if (text.empty()) return "No changelog available for this release.";
-            text.erase(std::remove(text.begin(), text.end(), '\r'), text.end());
-            while (!text.empty() && (text.back() == '\n' || text.back() == ' ' || text.back() == '\t')) text.pop_back();
-            constexpr std::size_t kMax = 3500;
-            if (text.size() > kMax) text = text.substr(0, kMax) + "\n\n[Changelog truncated]";
-            return text.empty() ? "No changelog available for this release." : text;
-        }
-
         bool SafeRunningNroPath(const std::string& path)
         {
             if (path.rfind("sdmc:/", 0) != 0 || path.find("..") != std::string::npos) return false;
@@ -91,73 +81,11 @@ namespace inst::update {
 
     CheckResult CheckForUpdate(const std::string& currentVersion)
     {
-        CheckResult result;
-        try {
-            const std::string jsonData = inst::curl::downloadToBuffer(kLatestReleaseEndpoint, -1, -1, 8000L);
-            if (jsonData.empty()) {
-                result.error = "GitHub returned no release metadata.";
-                return result;
-            }
-            const nlohmann::json release = nlohmann::json::parse(jsonData);
-            if (!release.is_object()) {
-                result.error = "GitHub release metadata was not an object.";
-                return result;
-            }
-            if (release.value("draft", false) || release.value("prerelease", false)) {
-                result.error = "Latest GitHub release is not a stable release.";
-                return result;
-            }
-            if (!release.contains("tag_name") || !release["tag_name"].is_string()) {
-                result.error = "GitHub release metadata is missing tag_name.";
-                return result;
-            }
-
-            SemanticVersion current;
-            SemanticVersion latest;
-            std::string versionError;
-            const std::string tag = release["tag_name"].get<std::string>();
-            if (!ParseStableSemver(currentVersion, current, &versionError)) {
-                result.error = "Current PersonaFoil version is invalid: " + versionError;
-                return result;
-            }
-            if (!ParseStableSemver(tag, latest, &versionError)) {
-                result.error = "Latest release tag is not a supported stable version: " + versionError;
-                return result;
-            }
-            if (CompareSemanticVersions(latest, current) <= 0) {
-                result.status = CheckStatus::UpToDate;
-                result.release.version = tag;
-                return result;
-            }
-
-            if (!release.contains("assets") || !release["assets"].is_array()) {
-                result.error = "GitHub release metadata has no asset list.";
-                return result;
-            }
-            std::vector<ReleaseAsset> assets;
-            for (const auto& item : release["assets"]) {
-                if (!item.is_object() || !item.contains("name") || !item["name"].is_string() ||
-                    !item.contains("browser_download_url") || !item["browser_download_url"].is_string()) continue;
-                assets.push_back({item["name"].get<std::string>(), item["browser_download_url"].get<std::string>()});
-            }
-
-            std::string assetError;
-            if (!SelectRequiredReleaseAssets(assets, result.release.nroUrl, result.release.checksumsUrl, &assetError)) {
-                result.error = assetError;
-                return result;
-            }
-            result.release.version = tag;
-            result.release.notes = release.contains("body") && release["body"].is_string()
-                ? NormalizeReleaseNotes(release["body"].get<std::string>())
-                : "No changelog available for this release.";
-            result.status = CheckStatus::UpdateAvailable;
-            return result;
-        } catch (const std::exception& e) {
-            result.error = std::string("Could not parse GitHub release metadata: ") + e.what();
-        } catch (...) {
-            result.error = "Could not check GitHub releases.";
-        }
-        return result;
+        inst::http::Request request;
+        request.timeoutMs = 8000;
+        request.maxBytes = 1024 * 1024;
+        request.headers = {"Accept: application/vnd.github+json"};
+        return ParseReleaseResponse(inst::http::Get(kLatestReleaseEndpoint, request), currentVersion);
     }
 
     InstallResult InstallUpdate(const ReleaseInfo& release, const ProgressCallback& progress)
@@ -182,7 +110,9 @@ namespace inst::update {
         std::filesystem::remove(checksumTemp, ec);
 
         Progress(progress, "Downloading checksum", 5.0);
-        if (!inst::curl::downloadFile(release.checksumsUrl, checksumTemp.c_str(), 15000L, false)) {
+        inst::http::Request checksumRequest;
+        checksumRequest.maxBytes = 64 * 1024;
+        if (!inst::http::GetFile(release.checksumsUrl, checksumTemp, checksumRequest).ok()) {
             result.error = "Could not download SHA256SUMS.txt.";
             return result;
         }
@@ -204,12 +134,15 @@ namespace inst::update {
         }
 
         Progress(progress, "Downloading PersonaFoil", 15.0);
-        if (!inst::curl::downloadFileWithProgress(release.nroUrl, staged.c_str(), 0L,
-                [&](std::uint64_t downloaded, std::uint64_t total) {
+        inst::http::Request nroRequest;
+        nroRequest.timeoutMs = 0;
+        nroRequest.maxBytes = kMaxNroSize;
+        nroRequest.progress = [&](std::uint64_t downloaded, std::uint64_t total) {
                     double percent = 15.0;
                     if (total > 0) percent += std::min(65.0, (static_cast<double>(downloaded) / static_cast<double>(total)) * 65.0);
                     Progress(progress, "Downloading PersonaFoil", percent);
-                })) {
+                };
+        if (!inst::http::GetFile(release.nroUrl, staged, nroRequest).ok()) {
             std::filesystem::remove(staged, ec);
             result.error = "Could not download personafoil.nro.";
             return result;
@@ -256,7 +189,8 @@ namespace inst::update {
         if (ec) {
             std::error_code restoreError;
             std::filesystem::rename(backup, running, restoreError);
-            std::filesystem::remove(staged, restoreError);
+            std::error_code cleanupError;
+            std::filesystem::remove(staged, cleanupError);
             result.error = restoreError
                 ? "Could not install the update and automatic rollback also failed. The backup remains at " + backup
                 : "Could not install the update. The previous NRO was restored.";

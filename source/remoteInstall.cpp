@@ -14,6 +14,7 @@
 #include <zstd.h>
 #include <mbedtls/aes.h>
 #include "remoteInstall.hpp"
+#include "util/remote_core.hpp"
 #include "cheat_manager.hpp"
 #include "install/http_nsp.hpp"
 #include "install/http_xci.hpp"
@@ -101,27 +102,7 @@ namespace {
     // Basic-auth credentials belong only to the remote the user configured.  A
     // legacy index may link arbitrary directory manifests, so do not forward
     // them to a different origin.
-    std::string GetUrlOrigin(const std::string& url)
-    {
-        const std::size_t schemeEnd = url.find("://");
-        if (schemeEnd == std::string::npos || schemeEnd == 0)
-            return {};
-
-        const std::size_t authorityStart = schemeEnd + 3;
-        const std::size_t authorityEnd = url.find_first_of("/?#", authorityStart);
-        std::string authority = url.substr(authorityStart, authorityEnd - authorityStart);
-        const std::size_t userInfoEnd = authority.rfind('@');
-        if (userInfoEnd != std::string::npos)
-            authority.erase(0, userInfoEnd + 1);
-        if (authority.empty())
-            return {};
-
-        std::string origin = url.substr(0, schemeEnd) + "://" + authority;
-        std::transform(origin.begin(), origin.end(), origin.begin(), [](unsigned char c) {
-            return static_cast<char>(std::tolower(c));
-        });
-        return origin;
-    }
+    std::string GetUrlOrigin(const std::string& url) { return inst::http::Origin(url); }
 
     int HexNibble(char c)
     {
@@ -226,9 +207,9 @@ namespace {
         return false;
     }
 
-    void BuildVersionAndRevision(std::string& outVersion, std::string& outRevision)
+    void BuildVersionAndRevision(std::string& outVersion, std::string& outRevision, bool tinfoil = false)
     {
-        const std::string raw = inst::config::remoteLegacyMode ? "20.0.2" : inst::config::appVersion;
+        const std::string raw = tinfoil ? "20.0.2" : inst::config::appVersion;
         outVersion = raw.empty() ? "0.0" : raw;
         outRevision = "0";
 
@@ -258,7 +239,7 @@ namespace {
             outRevision = revisionToken.substr(0, digitsEnd);
     }
 
-    std::vector<std::string> BuildLegacyHeaders(const std::string& requestUrl, const std::string& user, const std::string& pass)
+    std::vector<std::string> BuildLegacyHeaders(const std::string& requestUrl, const std::string& user, const std::string& pass, bool tinfoil = false)
     {
         if (!inst::util::HasLegacyAuthSupport())
             return {};
@@ -266,7 +247,7 @@ namespace {
         std::string themeHeader = "Theme: 0000000000000000000000000000000000000000000000000000000000000000";
         std::string versionValue;
         std::string revisionValue;
-        BuildVersionAndRevision(versionValue, revisionValue);
+        BuildVersionAndRevision(versionValue, revisionValue, tinfoil);
         std::string versionHeader = "Version: " + versionValue;
         std::string revisionHeader = "Revision: " + revisionValue;
         std::string languageHeader = "Language: " + Language::GetRemoteHeaderLanguage();
@@ -320,6 +301,7 @@ namespace {
             stream.avail_out = static_cast<uInt>(sizeof(chunk));
             status = inflate(&stream, Z_NO_FLUSH);
             const std::size_t produced = sizeof(chunk) - stream.avail_out;
+            if (produced > 16 * 1024 * 1024 - decoded.size()) { inflateEnd(&stream); return false; }
             if (produced > 0)
                 decoded.insert(decoded.end(), chunk, chunk + produced);
         }
@@ -380,6 +362,7 @@ namespace {
             if (frameContentSize > static_cast<unsigned long long>(std::numeric_limits<std::size_t>::max()))
                 return false;
 
+            if (frameContentSize > 16 * 1024 * 1024 - output.size()) return false;
             const std::size_t writeOffset = output.size();
             output.resize(writeOffset + static_cast<std::size_t>(frameContentSize));
             const std::size_t rc = ZSTD_decompress(
@@ -1182,9 +1165,9 @@ namespace {
     {
         std::vector<remoteInstStuff::RemoteSection> sections;
         try {
-            nlohmann::json remote = nlohmann::json::parse(body);
+            nlohmann::json remote = inst::remote::ParseDocument(body);
             if (remote.contains("error") && remote["error"].is_string()) {
-                error = "Remote login failed. " + remote["error"].get<std::string>();
+                error = "Remote login failed. Check source credentials.";
                 return sections;
             }
             std::string googleApiKey;
@@ -1408,191 +1391,47 @@ namespace remoteInstStuff {
         }
     }
 
-    struct FetchResult {
-        std::string body;
-        long responseCode = 0;
-        std::string effectiveUrl;
-        std::string contentType;
-        std::string error;
-        std::string decodeError;
-        CURLcode curlCode = CURLE_OK;
-    };
+    using FetchResult = inst::http::Result;
+    constexpr long kRemoteRequestTimeoutMs = 15000L;
+    constexpr long kRemoteConnectTimeoutMs = 10000L;
 
-    namespace {
-        constexpr long kRemoteRequestTimeoutMs = 30000L;
-        constexpr long kRemoteConnectTimeoutMs = 10000L;
-        constexpr int kRemoteFetchMaxAttempts = 4;
-
-        bool IsRetriableHttpCode(long responseCode)
-        {
-            return responseCode == 408 ||
-                responseCode == 425 ||
-                responseCode == 429 ||
-                responseCode == 500 ||
-                responseCode == 502 ||
-                responseCode == 503 ||
-                responseCode == 504;
-        }
-
-        bool IsRetriableCurlCode(CURLcode code)
-        {
-            switch (code) {
-                case CURLE_COULDNT_RESOLVE_HOST:
-                case CURLE_COULDNT_RESOLVE_PROXY:
-                case CURLE_COULDNT_CONNECT:
-                case CURLE_OPERATION_TIMEDOUT:
-                case CURLE_SEND_ERROR:
-                case CURLE_RECV_ERROR:
-                case CURLE_GOT_NOTHING:
-                case CURLE_SSL_CONNECT_ERROR:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        bool ShouldRetryRemoteFetch(const FetchResult& result)
-        {
-            if (result.curlCode != CURLE_OK)
-                return IsRetriableCurlCode(result.curlCode);
-            return IsRetriableHttpCode(result.responseCode);
-        }
-
-        std::uint32_t RemoteRetryDelayMs(int attemptIndex)
-        {
-            // attemptIndex is 0-based for retries after the first try.
-            static constexpr std::uint32_t kBackoffMs[kRemoteFetchMaxAttempts - 1] = {450, 1000, 1800};
-            if (attemptIndex < 0)
-                return kBackoffMs[0];
-            if (attemptIndex >= static_cast<int>(sizeof(kBackoffMs) / sizeof(kBackoffMs[0])))
-                return kBackoffMs[(sizeof(kBackoffMs) / sizeof(kBackoffMs[0])) - 1];
-            return kBackoffMs[attemptIndex];
-        }
-    }
-
-    FetchResult FetchRemoteResponse(const std::string& url, const std::string& user, const std::string& pass, const RemoteFetchProgressCallback& progressCb = RemoteFetchProgressCallback())
+    FetchResult FetchRemoteResponse(const std::string& url, const std::string& user, const std::string& pass,
+        const RemoteFetchProgressCallback& progressCb = {}, inst::remote::RequestProfile profile = inst::remote::RequestProfile::Modern, long timeoutMs = kRemoteRequestTimeoutMs)
     {
-        FetchResult lastResult;
-
-        for (int attempt = 0; attempt < kRemoteFetchMaxAttempts; attempt++) {
-            FetchResult result;
-            CURL* curl = curl_easy_init();
-            if (!curl) {
-                result.error = "Failed to initialize curl.";
-                return result;
-            }
-
-            curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-            curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-            curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-            const std::string userAgent = inst::config::remoteLegacyMode ? std::string() : inst::curl::getDefaultUserAgent();
-            curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent.c_str());
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteToString);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result.body);
-            curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, kRemoteRequestTimeoutMs);
-            curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, kRemoteConnectTimeoutMs);
-            curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
-
-            RemoteFetchProgressContext progressCtx{};
-            if (progressCb) {
-                progressCtx.cb = &progressCb;
-                curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
-                curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, RemoteFetchProgressHandler);
-                curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &progressCtx);
-            }
-
-            struct curl_slist* headerList = nullptr;
-            const auto headers = BuildLegacyHeaders(url, user, pass);
-            for (const auto& header : headers)
-                headerList = curl_slist_append(headerList, header.c_str());
-            if (headerList)
-                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerList);
-
-            std::string authValue;
-            if (!user.empty() || !pass.empty()) {
-                authValue = user + ":" + pass;
-                curl_easy_setopt(curl, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
-                curl_easy_setopt(curl, CURLOPT_USERPWD, authValue.c_str());
-            }
-
-            const CURLcode rc = curl_easy_perform(curl);
-            result.curlCode = rc;
-
-            long responseCode = 0;
-            char* effectiveUrl = nullptr;
-            char* contentType = nullptr;
-            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-            curl_easy_getinfo(curl, CURLINFO_EFFECTIVE_URL, &effectiveUrl);
-            curl_easy_getinfo(curl, CURLINFO_CONTENT_TYPE, &contentType);
-            if (headerList)
-                curl_slist_free_all(headerList);
-            curl_easy_cleanup(curl);
-
-            result.responseCode = responseCode;
-            result.effectiveUrl = effectiveUrl ? effectiveUrl : "";
-            result.contentType = contentType ? contentType : "";
-
-            if (rc != CURLE_OK) {
-                result.error = std::string(curl_easy_strerror(rc)) + " (curl=" + std::to_string(static_cast<int>(rc)) + ")";
-            } else if (progressCb) {
-                const std::uint64_t bodySize = static_cast<std::uint64_t>(result.body.size());
-                progressCb(bodySize, bodySize);
-            }
-
-            std::size_t legacyOffset = std::string::npos;
-            if (result.error.empty() && FindLegacyPayloadOffset(result.body, legacyOffset)) {
-                std::string decodedBody;
-                std::string decodeError;
-                const std::string legacyBody = (legacyOffset == 0) ? result.body : result.body.substr(legacyOffset);
-                if (DecodeLegacyPayload(legacyBody, decodedBody, decodeError))
-                    result.body = std::move(decodedBody);
-                else
-                    result.decodeError = std::move(decodeError);
-            }
-
-            const bool canRetry = (attempt + 1) < kRemoteFetchMaxAttempts && ShouldRetryRemoteFetch(result);
-            if (!canRetry)
-                return result;
-
-            lastResult = result;
-            std::this_thread::sleep_for(std::chrono::milliseconds(RemoteRetryDelayMs(attempt)));
+        inst::http::Request request;
+        request.timeoutMs = timeoutMs;
+        request.verifyTls = false; // Homebrew Remote compatibility; official services verify TLS.
+        request.username = user;
+        request.password = pass;
+        request.progress = progressCb;
+        request.userAgent = profile == inst::remote::RequestProfile::Tinfoil ? "" : inst::curl::getDefaultUserAgent();
+        if (profile != inst::remote::RequestProfile::Public)
+            request.headers = BuildLegacyHeaders(url, user, pass, profile == inst::remote::RequestProfile::Tinfoil);
+        auto result = inst::http::Get(url, request);
+        std::size_t offset = 0;
+        if (result.ok() && FindLegacyPayloadOffset(result.body, offset)) {
+            std::string decoded, error;
+            if (DecodeLegacyPayload(result.body.substr(offset), decoded, error)) result.body = std::move(decoded);
+            else { result.error = inst::http::Error::Decode; result.diagnostic = error; }
         }
-
-        return lastResult;
+        return result;
     }
 
     bool ValidateRemoteResponse(const FetchResult& fetch, std::string& error)
     {
-        if (!fetch.error.empty()) {
-            error = fetch.error;
-            return false;
-        }
-        if (fetch.responseCode == 401 || fetch.responseCode == 403) {
-            if (!inst::util::HasLegacyAuthSupport()) {
-                error = "Remote requires legacy HAUTH/UAUTH signing, but this build does not support it.";
-            } else {
-                error = "Remote requires authentication. Check credentials or enable public Remote.";
-            }
-            return false;
-        }
-        if (!fetch.decodeError.empty()) {
-            error = fetch.decodeError;
-            return false;
-        }
-        std::size_t legacyOffset = std::string::npos;
-        if (FindLegacyPayloadOffset(fetch.body, legacyOffset)) {
-            error = "Encrypted Remote response could not be decoded.";
-            return false;
-        }
-        if (IsLoginUrl(fetch.effectiveUrl.c_str()) || (!fetch.contentType.empty() && fetch.contentType.find("text/html") != std::string::npos) || ContainsHtml(fetch.body)) {
-            if (inst::config::remoteLegacyMode && !inst::util::HasLegacyAuthSupport()) {
-                error = "This build does not support this Remote";
-            } else {
-                error = "Remote returned the login page. Check Remote URL, username, and password, or enable public Remote.";
-            }
+        if (!fetch.ok()) { error = inst::http::Describe(fetch); return false; }
+        if (IsLoginUrl(fetch.effectiveUrl.c_str()) || fetch.contentType.find("text/html") != std::string::npos || ContainsHtml(fetch.body)) {
+            error = "Source returned a login or HTML page. Check address and account credentials.";
             return false;
         }
         return true;
+    }
+
+    inst::remote::Negotiation ProbeRemote(const std::string& url, const std::string& user, const std::string& pass, inst::remote::Compatibility mode)
+    {
+        return inst::remote::Negotiate(url, mode, [&](const std::string& endpoint, inst::remote::RequestProfile profile, bool credentials) {
+            return FetchRemoteResponse(endpoint, credentials ? user : "", credentials ? pass : "", {}, profile);
+        });
     }
 
     namespace {
@@ -1748,10 +1587,10 @@ namespace remoteInstStuff {
                 }
             }
 
-            if (inst::config::remoteLegacyMode)
+            if (inst::remote::ActiveCapabilities().customIndex())
                 ApplyOfflineDataToItem(item, entry.is_object() && entry.contains("name") && entry["name"].is_string());
 
-            if (!item.hasIconUrl && !inst::config::remoteLegacyMode) {
+            if (!item.hasIconUrl && !inst::remote::ActiveCapabilities().customIndex()) {
                 std::uint64_t baseTitleId = 0;
                 if (TryResolveBaseTitleId(item, baseTitleId) && baseTitleId != 0) {
                     item.iconUrl = BuildFullUrl(baseUrl, GetRemoteApiPrefix() + "/icon/" + FormatTitleIdHexUpper(baseTitleId));
@@ -1928,98 +1767,6 @@ namespace remoteInstStuff {
             return "";
         }
 
-        bool ApplyCustomIndexLocations(const nlohmann::json& locations, std::string& error)
-        {
-            if (!locations.is_array()) {
-                error = "Custom index locations must be an array.";
-                return false;
-            }
-
-            std::vector<inst::config::RemoteProfile> savedRemotes = inst::config::LoadRemotes();
-            for (const auto& location : locations) {
-                std::string url;
-                std::string action = "add";
-                std::string title;
-                if (location.is_string()) {
-                    url = location.get<std::string>();
-                } else if (location.is_object()) {
-                    if (location.contains("url") && location["url"].is_string())
-                        url = location["url"].get<std::string>();
-                    if (location.contains("action") && location["action"].is_string())
-                        action = location["action"].get<std::string>();
-                    for (const char* key : {"title", "name", "label"}) {
-                        if (location.contains(key) && location[key].is_string()) {
-                            title = TrimAscii(location[key].get<std::string>());
-                            if (!title.empty())
-                                break;
-                        }
-                    }
-                } else {
-                    error = "Custom index contains an invalid location entry.";
-                    return false;
-                }
-
-                url = TrimAscii(url);
-                std::transform(action.begin(), action.end(), action.begin(), [](unsigned char c) { return std::tolower(c); });
-                std::string protocol;
-                std::string host;
-                std::string path;
-                int port = 0;
-                if (url.empty() || !inst::config::ParseRemoteUrl(url, protocol, host, port, path)) {
-                    error = "Custom index location must be a valid HTTP(S) URL.";
-                    return false;
-                }
-
-                inst::config::RemoteProfile profile;
-                profile.protocol = protocol;
-                profile.host = host;
-                profile.port = port;
-                profile.path = path;
-                const std::string derivedTitle = path.empty() ? host : (host + path);
-                // Legacy custom-index locations may omit a title, while saved
-                // profiles always require one.
-                profile.title = title.empty() ? derivedTitle : title;
-                const std::string normalizedUrl = inst::config::BuildRemoteUrl(profile);
-                auto saved = std::find_if(savedRemotes.begin(), savedRemotes.end(), [&](const auto& candidate) {
-                    return inst::config::BuildRemoteUrl(candidate) == normalizedUrl;
-                });
-
-                if (action == "disable") {
-                    if (saved != savedRemotes.end()) {
-                        std::string deleteError;
-                        if (!inst::config::DeleteRemote(saved->fileName)) {
-                            error = "Unable to disable custom index location.";
-                            return false;
-                        }
-                        savedRemotes.erase(saved);
-                    }
-                } else if (action == "add" || action == "enable") {
-                    if (saved == savedRemotes.end()) {
-                        std::string saveError;
-                        if (!inst::config::SaveRemote(profile, &saveError)) {
-                            error = saveError.empty() ? "Unable to save custom index location." : saveError;
-                            return false;
-                        }
-                        savedRemotes.push_back(profile);
-                    } else if (!title.empty() && saved->title == derivedTitle) {
-                        // Repair profiles saved by older builds that had to derive
-                        // the title because the legacy response title was ignored.
-                        profile.fileName = saved->fileName;
-                        std::string saveError;
-                        if (!inst::config::SaveRemote(profile, &saveError)) {
-                            error = saveError.empty() ? "Unable to update custom index location." : saveError;
-                            return false;
-                        }
-                        *saved = profile;
-                    }
-                } else {
-                    error = "Custom index location action must be add, enable, or disable.";
-                    return false;
-                }
-            }
-            return true;
-        }
-
         bool ValidateCustomIndexOptions(const nlohmann::json& remote, std::string& error)
         {
             const auto requireString = [&](const char* key) {
@@ -2069,7 +1816,7 @@ namespace remoteInstStuff {
             if (!ValidateCustomIndexOptions(remote, error))
                 return false;
             if (remote.contains("error") && remote["error"].is_string()) {
-                error = remote["error"].get<std::string>();
+                error = "Source rejected this request. Check credentials and source configuration.";
                 return false;
             }
 
@@ -2095,8 +1842,7 @@ namespace remoteInstStuff {
                 }
             }
 
-            if (remote.contains("locations") && !ApplyCustomIndexLocations(remote["locations"], error))
-                return false;
+            // Remote content cannot mutate saved endpoints, titles, or credentials.
 
             bool handled = false;
 
@@ -2121,55 +1867,27 @@ namespace remoteInstStuff {
             }
 
             if (remote.contains("files")) {
+                handled = true;
                 if (AppendLegacyFilesFromJson(remote["files"], baseUrl, googleApiKey, requestHeaders, items, seenItemUrls, error))
                     handled = true;
                 else if (!error.empty())
                     return false;
             }
             if (remote.contains("paths")) {
+                handled = true;
                 if (AppendLegacyFilesFromJson(remote["paths"], baseUrl, googleApiKey, requestHeaders, items, seenItemUrls, error))
                     handled = true;
                 else if (!error.empty())
                     return false;
             }
             if (remote.contains("titledb")) {
+                handled = true;
                 if (AppendLegacyTitleDbFromJson(remote["titledb"], baseUrl, items, seenItemUrls))
                     handled = true;
             }
 
-            if (remote.contains("directories") && remote["directories"].is_array()) {
-                handled = true;
-                for (const auto& directoryEntry : remote["directories"]) {
-                    const std::string directoryPath = GetDirectoryEntryUrl(directoryEntry);
-                    if (directoryPath.empty())
-                        continue;
-
-                    const std::string directoryUrl = BuildFullUrl(baseUrl, directoryPath);
-                    if (directoryUrl.empty())
-                        continue;
-                    if (!seenManifestUrls.insert(directoryUrl).second)
-                        continue;
-
-                    const bool sameCredentialOrigin = !credentialOrigin.empty() &&
-                        GetUrlOrigin(directoryUrl) == credentialOrigin;
-                    FetchResult directoryFetch = FetchRemoteResponse(
-                        directoryUrl, sameCredentialOrigin ? user : "", sameCredentialOrigin ? pass : "", progressCb);
-                    if (!ValidateRemoteResponse(directoryFetch, error))
-                        return false;
-
-                    nlohmann::json directoryJson;
-                    try {
-                        directoryJson = nlohmann::json::parse(directoryFetch.body);
-                    } catch (...) {
-                        error = "Invalid Remote response.";
-                        return false;
-                    }
-
-                    if (!CollectRemoteItemsFromJson(directoryJson, directoryUrl, user, pass, items, seenItemUrls, seenManifestUrls,
-                        error, progressCb, googleApiKey, credentialOrigin, requestHeaders))
-                        return false;
-                }
-            }
+            // Directory traversal is centralized in the bounded aggregate walker.
+            if (remote.contains("directories") && remote["directories"].is_array()) handled = true;
 
             if (!handled) {
                 error = "Remote response missing file list.";
@@ -2180,110 +1898,73 @@ namespace remoteInstStuff {
         }
     }
 
+    namespace {
+        std::unordered_map<std::string, inst::remote::Capabilities> capabilityCache;
+
+        std::vector<RemoteItem> ParseAggregate(const std::string& url, const FetchResult& root,
+            const std::string& user, const std::string& pass, std::string& error, const RemoteFetchProgressCallback& progressCb)
+        {
+            std::vector<RemoteItem> items;
+            std::unordered_set<std::string> seenItems, seenManifests;
+            const auto fetch = [&](const std::string& child, inst::remote::RequestProfile profile, bool credentials) {
+                return FetchRemoteResponse(child, credentials ? user : "", credentials ? pass : "", progressCb, profile, 5000L);
+            };
+            const auto consume = [&](const nlohmann::json& node, const std::string& source, const inst::remote::IndexPolicy& policy, std::string& parseError) {
+                std::vector<RemoteItem> staged;
+                std::unordered_set<std::string> localSeen;
+                if (!CollectRemoteItemsFromJson(node, source, user, pass, staged, localSeen, seenManifests,
+                        parseError, progressCb, policy.googleApiKey, GetUrlOrigin(url), policy.headers)) return std::size_t(0);
+                std::size_t added = 0;
+                for (auto& item : staged) {
+                    if (!seenItems.insert(BuildLegacyIdentityKey(item)).second) continue;
+                    item.indexSourceUrl = source;
+                    if (inst::http::Origin(item.url) != inst::http::Origin(source)) item.requestHeaders.clear();
+                    items.push_back(std::move(item)); ++added;
+                }
+                return added;
+            };
+            auto report = inst::remote::WalkIndex(url, root, fetch, consume);
+            error = report.error;
+            inst::remote::SetLastReport(report);
+            if (!error.empty()) return {};
+            std::sort(items.begin(), items.end(), [](const RemoteItem& a, const RemoteItem& b) { return inst::util::ignoreCaseCompare(a.name, b.name); });
+            return items;
+        }
+    }
+
     std::vector<RemoteItem> FetchRemote(const std::string& remoteUrl, const std::string& user, const std::string& pass, std::string& error, const RemoteFetchProgressCallback& progressCb)
     {
+        bool fallback = false;
+        const auto sections = FetchRemoteSections(remoteUrl, user, pass, error, &fallback, progressCb);
         std::vector<RemoteItem> items;
-        error.clear();
-
-        std::string baseUrl = NormalizeRemoteUrl(remoteUrl);
-        if (baseUrl.empty()) {
-            error = "Remote URL is empty.";
-            return items;
-        }
-
-        FetchResult fetch = FetchRemoteResponse(baseUrl, user, pass, progressCb);
-        if (!ValidateRemoteResponse(fetch, error))
-            return items;
-
-        try {
-            nlohmann::json remote = nlohmann::json::parse(fetch.body);
-            std::unordered_set<std::string> seenItemUrls;
-            std::unordered_set<std::string> seenManifestUrls;
-            seenManifestUrls.insert(baseUrl);
-            if (!CollectRemoteItemsFromJson(remote, baseUrl, user, pass, items, seenItemUrls, seenManifestUrls,
-                error, progressCb, "", GetUrlOrigin(baseUrl)))
-                return items;
-        }
-        catch (...) {
-            error = "Invalid Remote response.";
-            return {};
-        }
-
-        std::sort(items.begin(), items.end(), [](const RemoteItem& a, const RemoteItem& b) {
-            return inst::util::ignoreCaseCompare(a.name, b.name);
-        });
+        for (const auto& section : sections) items.insert(items.end(), section.items.begin(), section.items.end());
         return items;
     }
 
     std::vector<RemoteSection> FetchRemoteSections(const std::string& remoteUrl, const std::string& user, const std::string& pass, std::string& error, bool* outUsedLegacyFallback, const RemoteFetchProgressCallback& progressCb)
     {
-        std::vector<RemoteSection> sections;
         error.clear();
-        if (outUsedLegacyFallback)
-            *outUsedLegacyFallback = false;
-
-        std::string baseUrl = NormalizeRemoteUrl(remoteUrl);
-        if (baseUrl.empty()) {
-            error = "Remote URL is empty.";
-            return sections;
-        }
-
-        auto tryLegacyFallback = [&]() -> bool {
-            std::string legacyError;
-            std::vector<RemoteItem> items = FetchRemote(remoteUrl, user, pass, legacyError, progressCb);
-            if (items.empty()) {
-                if (!legacyError.empty())
-                    error = legacyError;
-                return false;
-            }
-
-            if (outUsedLegacyFallback)
-                *outUsedLegacyFallback = true;
-            error.clear();
-            sections.push_back({"all", "All", items});
-            return true;
+        inst::remote::SetLastReport({});
+        const auto url = inst::http::CanonicalUrl(NormalizeRemoteUrl(remoteUrl));
+        const auto key = url + "\n" + user + "\n" + pass + "\n" + inst::identity::GetActiveUid() + "\n" + inst::remote::CompatibilityName(inst::config::remoteCompatibility);
+        const auto cached = capabilityCache.find(key);
+        const auto fetch = [&](const std::string& endpoint, inst::remote::RequestProfile profile, bool credentials) {
+            return FetchRemoteResponse(endpoint, credentials ? user : "", credentials ? pass : "", progressCb, profile);
         };
-
-        if (inst::config::remoteLegacyMode) {
-            tryLegacyFallback();
-            return sections;
-        }
-
-        auto trySectionsPath = [&](const std::string& apiPrefix) -> bool {
-            std::string sectionsUrl = baseUrl + apiPrefix + "/sections";
-            FetchResult fetch = FetchRemoteResponse(sectionsUrl, user, pass, progressCb);
-            if (fetch.responseCode == 404)
-                return false;
-
-            if (!ValidateRemoteResponse(fetch, error)) {
-                if (!fetch.error.empty()) {
-                    error = "inst.remote.unreachable"_lang + "\n" + fetch.error;
-                    if (fetch.responseCode > 0)
-                        error += "\nHTTP " + std::to_string(fetch.responseCode);
-                }
-                return false;
-            }
-
-            std::string parseError;
-            std::vector<RemoteSection> parsed = ParseRemoteSectionsBody(fetch.body, baseUrl, parseError);
-            if (parsed.empty() && !parseError.empty()) {
-                error = parseError;
-                return false;
-            }
-
-            sections = std::move(parsed);
-            error.clear();
-            gRemoteApiPrefix = apiPrefix;
-            return true;
-        };
-
-        if (trySectionsPath("/api/remote"))
-            return sections;
-        if (trySectionsPath("/api/shop"))
-            return sections;
-        if (tryLegacyFallback())
-            return sections;
-        return sections;
+        const auto negotiated = inst::remote::Negotiate(url, inst::config::remoteCompatibility, fetch,
+            cached == capabilityCache.end() ? nullptr : &cached->second);
+        error = negotiated.error;
+        if (!error.empty()) { if (outUsedLegacyFallback) *outUsedLegacyFallback = false; return {}; }
+        inst::remote::SetActiveCapabilities(negotiated.capabilities);
+        if (capabilityCache.size() >= 16) capabilityCache.clear();
+        capabilityCache[key] = negotiated.capabilities;
+        const bool custom = negotiated.capabilities.customIndex();
+        if (outUsedLegacyFallback) *outUsedLegacyFallback = custom;
+        gRemoteApiPrefix = negotiated.capabilities.apiPrefix;
+        if (!custom) return ParseRemoteSectionsBody(negotiated.response.body, url, error);
+        auto items = ParseAggregate(url, negotiated.response, user, pass, error, progressCb);
+        if (!error.empty()) return {};
+        return {{"all", "All", std::move(items)}};
     }
 
     bool DownloadCheatText(const RemoteItem& item, const std::string& user, const std::string& pass, std::string& text, std::string& error)
@@ -2296,12 +1977,12 @@ namespace remoteInstStuff {
         FetchResult fetch = FetchRemoteResponse(item.url, user, pass);
         if (!ValidateRemoteResponse(fetch, error))
             return false;
-        if (fetch.responseCode == 404 || fetch.responseCode == 405) {
+        if (fetch.status == 404 || fetch.status == 405) {
             error = "This AeroFoil server does not support the cheat download API.";
             return false;
         }
-        if (fetch.responseCode < 200 || fetch.responseCode >= 300) {
-            error = "Cheat download failed (HTTP " + std::to_string(fetch.responseCode) + ").";
+        if (fetch.status < 200 || fetch.status >= 300) {
+            error = "Cheat download failed (HTTP " + std::to_string(fetch.status) + ").";
             return false;
         }
         text = std::move(fetch.body);
@@ -2324,9 +2005,9 @@ namespace remoteInstStuff {
         addField("title_id", titleId); addField("build_id", buildId); addField("content", text);
         if (!note.empty()) addField("note", note);
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 0L);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-        const std::string userAgent = inst::config::remoteLegacyMode ? std::string() : inst::curl::getDefaultUserAgent();
+        const std::string userAgent = inst::remote::ActiveCapabilities().customIndex() ? std::string() : inst::curl::getDefaultUserAgent();
         curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteToString);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -2347,7 +2028,7 @@ namespace remoteInstStuff {
         if (responseCode == 401 || responseCode == 403) { error = "AeroFoil rejected the upload: this Remote account is not an admin."; return false; }
         if (responseCode == 404 || responseCode == 405) { error = "This AeroFoil server does not support cheat uploads."; return false; }
         if (responseCode < 200 || responseCode >= 300) { error = "Cheat upload failed (HTTP " + std::to_string(responseCode) + ")."; return false; }
-        try { const auto body = nlohmann::json::parse(response); if (body.contains("success") && body["success"].is_boolean() && !body["success"].get<bool>()) { error = body.value("error", "AeroFoil rejected the upload."); return false; } } catch (...) { /* Some AeroFoil versions return an empty success body. */ }
+        try { const auto body = inst::remote::ParseDocument(response); if (body.contains("success") && body["success"].is_boolean() && !body["success"].get<bool>()) { error = body.value("error", "AeroFoil rejected the upload."); return false; } } catch (...) { /* Some AeroFoil versions return an empty success body. */ }
         return true;
     }
 
@@ -2725,15 +2406,15 @@ namespace remoteInstStuff {
             return "";
 
         FetchResult fetch = FetchRemoteResponse(baseUrl, user, pass);
-        if (fetch.responseCode == 401 || fetch.responseCode == 403)
+        if (fetch.status == 401 || fetch.status == 403)
             return "";
-        if (!fetch.error.empty())
+        if (!fetch.ok())
             return "";
         if (fetch.body.rfind("TINFOIL", 0) == 0)
             return "";
 
         try {
-            nlohmann::json remote = nlohmann::json::parse(fetch.body);
+            nlohmann::json remote = inst::remote::ParseDocument(fetch.body);
             if (remote.contains("success") && remote["success"].is_string())
                 return remote["success"].get<std::string>();
         }
@@ -2825,10 +2506,6 @@ namespace remoteInstStuff {
             } else {
                 inst::ui::instPage::setInstInfoText("inst.info_page.failed"_lang + failedName);
                 inst::ui::instPage::setInstBarPerc(0);
-                std::string audioPath = "romfs:/audio/bark.wav";
-                if (!inst::config::soundEnabled) audioPath = "";
-                if (std::filesystem::exists(inst::config::appDir + "/bark.wav")) audioPath = inst::config::appDir + "/bark.wav";
-                std::thread audioThread(inst::util::playAudio, audioPath);
                 std::string lowerError = errorText;
                 std::transform(lowerError.begin(), lowerError.end(), lowerError.begin(), [](unsigned char c) { return std::tolower(c); });
                 const bool googleApiKeyRequired = currentGoogleDriveWithoutApiKey &&
@@ -2845,7 +2522,7 @@ namespace remoteInstStuff {
                     ? userMessage
                     : userMessage + "\n\nIndex source: " + currentIndexSourceUrl;
                 inst::ui::mainApp->CreateShowDialog("inst.info_page.failed"_lang + failedName + "!", messageWithSource, {"common.ok"_lang}, true);
-                audioThread.join();
+
             }
             nspInstalled = false;
         }
@@ -2863,7 +2540,7 @@ namespace remoteInstStuff {
             inst::ui::instPage::setInstBarPerc(100);
             std::string audioPath = "romfs:/audio/success.wav";
             if (!inst::config::soundEnabled) audioPath = "";
-            if (std::filesystem::exists(inst::config::appDir + "/success.wav")) audioPath = inst::config::appDir + "/success.wav";
+            else if (std::filesystem::exists(inst::config::appDir + "/success.wav")) audioPath = inst::config::appDir + "/success.wav";
             std::thread audioThread(inst::util::playAudio, audioPath);
             if (items.size() > 1)
                 inst::ui::mainApp->CreateShowDialog(std::to_string(items.size()) + "inst.info_page.desc0"_lang, "inst.info_page.complete"_lang, {"common.ok"_lang}, true);
