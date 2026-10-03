@@ -14,14 +14,26 @@ negotiation/config migration, discovery pipeline/cache/browser/OpenNX presets,
 central exit confirmation/input release gate, silent error handling and improved
 persona presentation. Existing seed/UID storage and Native derivation are unchanged.
 
-Host validation passed for identity, updater, HTTP/TLS/redirect/range behavior,
-aggregation/negotiation/limits, migration, input gating, catalog integrity/cache
-retention and discovery publishing data. Draft PR: #5. The first target build
-identified a Switch-only SHA-256 function-name mismatch; repaired to the existing
-libnx API used by the identity engine. The next build exposed two removed JBOD
-helpers; both are restored. The final authentication review also scoped save/cheat
-download credentials to the configured origin. A replacement target build is pending.
-No local Switch toolchain is installed; CI provides the target build.
+Validated implementation commit: `02020d4bbe197da18b9e227dc0850ce995f14571`.
+Draft PR: [#5](https://github.com/stupidgiraffe/PersonaFoil/pull/5).
+Both [push CI](https://github.com/stupidgiraffe/PersonaFoil/actions/runs/37119784801)
+and [PR CI](https://github.com/stupidgiraffe/PersonaFoil/actions/runs/37119787324)
+passed the host suite and Switch release build. No local Switch toolchain was
+installed. The reviewed source retains Native/persona derivation and all install
+methods; target compiler repairs preserve the libnx SHA-256 API and JBOD helpers.
+
+Host checks cover identity, updater, actual HTTP/TLS/range/redirect/streaming
+behavior, aggregation/negotiation/limits, saved-config migration, input release,
+catalog integrity/cache retention and the discovery pipeline. A live C++ GitHub
+release check returned Up to date against v0.1.1. The published 13-entry catalog
+passed the same C++ parser and transactional-cache tests.
+
+Candidate package: `dist/candidates/0.1.2-02020d4b/` contains `personafoil.nro`,
+`personafoil.zip` and `SHA256SUMS.txt`. Both checksums verify. NRO magic, ZIP SD
+layout (`switch/PersonaFoil/personafoil.nro`), identical executable bytes and
+embedded CA/catalog assets were verified. NRO SHA-256:
+`cb6074b7119dc206210286620b587f7a3ab25bae7bc58e86469dc6e52f2218c9`.
+[CI artifact](https://github.com/stupidgiraffe/PersonaFoil/actions/runs/37119784801/artifacts/11272942014).
 
 Public catalog branch `catalog-data` now contains 13 endpoints at
 `cdd2263c6a15d52f67b09cfdbc944b2615a10e32`. Its downloaded payload and checksum
@@ -39,5 +51,7 @@ and release-to-release updates. Host fixtures establish software behavior only.
 
 ## Delivery discipline
 
-Prepare a draft PR and CI installable artifact. Do not merge, tag or publish a
-stable release automatically. Plane PFOIL is the task system of record.
+Draft PR and installable candidate are delivered. No merge, tag or stable release
+was performed. Plane PFOIL records implementation evidence; PFOIL-11 remains in
+progress for real-Switch acceptance. Documentation-only completion commits do
+not rebuild the already verified executable.
