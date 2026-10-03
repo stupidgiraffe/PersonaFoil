@@ -152,12 +152,8 @@ namespace usbInstStuff {
             inst::ui::instPage::setInstInfoText(failure.canceled ? "Installation canceled." : ("inst.info_page.failed"_lang + failedName));
             inst::ui::instPage::setInstBarPerc(0);
             if (!failure.canceled) {
-                std::string audioPath = "romfs:/audio/bark.wav";
-                if (!inst::config::soundEnabled) audioPath = "";
-                if (std::filesystem::exists(inst::config::appDir + "/bark.wav")) audioPath = inst::config::appDir + "/bark.wav";
-                std::thread audioThread(inst::util::playAudio,audioPath);
                 inst::ui::mainApp->CreateShowDialog("inst.info_page.failed"_lang + failedName + "!", inst::diag::BuildUserMessage(failure), {"common.ok"_lang}, true);
-                audioThread.join();
+
             } else {
                 inst::ui::mainApp->CreateShowDialog("Canceled", inst::diag::BuildUserMessage(failure), {"common.ok"_lang}, true);
             }
@@ -176,7 +172,7 @@ namespace usbInstStuff {
             inst::ui::instPage::setInstBarPerc(100);
             std::string audioPath = "romfs:/audio/success.wav";
             if (!inst::config::soundEnabled) audioPath = "";
-            if (std::filesystem::exists(inst::config::appDir + "/success.wav")) audioPath = inst::config::appDir + "/success.wav";
+            else if (std::filesystem::exists(inst::config::appDir + "/success.wav")) audioPath = inst::config::appDir + "/success.wav";
             std::thread audioThread(inst::util::playAudio,audioPath);
             if (ourTitleList.size() > 1) inst::ui::mainApp->CreateShowDialog(std::to_string(ourTitleList.size()) + "inst.info_page.desc0"_lang, "inst.info_page.complete"_lang, {"common.ok"_lang}, true);
             else inst::ui::mainApp->CreateShowDialog(fileNames[0] + "inst.info_page.desc1"_lang, "inst.info_page.complete"_lang, {"common.ok"_lang}, true);

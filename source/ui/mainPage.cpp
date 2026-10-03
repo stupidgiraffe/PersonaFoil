@@ -1,3 +1,4 @@
+#include "util/remote_core.hpp"
 #include <filesystem>
 #include <cstdio>
 #include <cstring>
@@ -497,10 +498,10 @@ namespace inst::ui {
     }
 
     void MainPage::backupSaveDataMenuItem_Click() {
-        if (inst::config::remoteLegacyMode) {
+        if (inst::remote::ActiveCapabilities().customIndex()) {
             mainApp->CreateShowDialog(
                 "main.menu.backup"_lang,
-                "Save data backups are disabled while Tinfoil Mode is enabled.",
+                "This source uses a custom index and does not provide the save backup API.",
                 {"common.ok"_lang},
                 true
             );
@@ -680,10 +681,7 @@ namespace inst::ui {
         mainApp->CreateShowDialog("main.menu.backup"_lang, summary, {"common.ok"_lang}, true);
     }
 
-    void MainPage::exitMenuItem_Click() {
-        mainApp->FadeOut();
-        mainApp->Close();
-    }
+    void MainPage::exitMenuItem_Click() { mainApp->ConfirmExit(); }
 
     void MainPage::settingsMenuItem_Click() {
         mainApp->LoadLayout(mainApp->optionspage);
@@ -871,9 +869,9 @@ namespace inst::ui {
             Down |= FindBottomHintButton(this->bottomHintSegments, bottomTapX);
         }
         inst::util::playNavigationClickIfNeeded(Down);
-        if (((Down & HidNpadButton_Plus) || (Down & HidNpadButton_Minus) || (Down & HidNpadButton_B)) && mainApp->IsShown()) {
-            mainApp->FadeOut();
-            mainApp->Close();
+        if (Down & HidNpadButton_B) {
+            mainApp->ConfirmExit();
+            return;
         }
         if (Down & HidNpadButton_Y) {
             this->showSelectedMainInfo();
@@ -937,5 +935,4 @@ namespace inst::ui {
             this->activateSelectedMainItem();
     }
 }
-
 

@@ -83,6 +83,48 @@ namespace inst::ui {
         return FormatOneDecimal(mib) + " MiB";
     }
 
+    namespace {
+        std::uint64_t InputTimeMs() {
+            return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+        }
+    }
+
+    void MainApplication::SuppressInput() {
+        this->inputGate.Arm(InputTimeMs());
+        // Plutonium dispatches element input after layout input in the same frame.
+        // Its render-over flag suppresses that second dispatch without changing the library.
+        this->rover = true;
+    }
+
+    void MainApplication::LoadLayout(std::shared_ptr<pu::ui::Layout> layout) {
+        pu::ui::Application::LoadLayout(std::move(layout));
+        this->SuppressInput();
+    }
+
+    int MainApplication::CreateShowDialog(const std::string& title, const std::string& content,
+        std::vector<std::string> options, bool lastCancel, const std::string& icon) {
+        const int result = pu::ui::Application::CreateShowDialog(title, content, std::move(options), lastCancel, icon);
+        this->RefreshInputDevice(true);
+        this->SuppressInput();
+        return result;
+    }
+
+    void MainApplication::BindInput(pu::ui::Layout::Ref layout,
+        std::function<void(u64, u64, u64, pu::ui::Touch)> callback) {
+        layout->SetOnInput([this, callback](u64 down, u64 up, u64 held, pu::ui::Touch touch) {
+            callback(down, up, held, touch);
+            if (down & HidNpadButton_B) this->SuppressInput();
+        });
+    }
+
+    void MainApplication::ConfirmExit() {
+        if (this->exitDialogOpen || !this->IsShown()) return;
+        this->exitDialogOpen = true;
+        const int choice = this->CreateShowDialog("Exit PersonaFoil?", "Return to the Homebrew Menu?", {"Exit", "Stay"}, true);
+        this->exitDialogOpen = false;
+        if (choice == 0) { this->FadeOut(); this->Close(); }
+    }
+
     void MainApplication::Close() {
         if (this->remoteinstPage)
             this->remoteinstPage->stopIconDownloadWorker();
@@ -100,6 +142,7 @@ namespace inst::ui {
         if (force || regainedFocus || !padIsConnected(&this->input_pad)) {
             padConfigureInput(8, HidNpadStyleSet_NpadStandard);
             padInitializeAny(&this->input_pad);
+            this->SuppressInput();
         }
     }
 
@@ -117,17 +160,19 @@ namespace inst::ui {
         this->hddinstPage = hddInstPage::New();
         this->instpage = instPage::New();
         this->optionspage = optionsPage::New();
-        this->mainPage->SetOnInput(std::bind(&MainPage::onInput, this->mainPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-        this->netinstPage->SetOnInput(std::bind(&netInstPage::onInput, this->netinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-        this->remoteinstPage->SetOnInput(std::bind(&remoteInstPage::onInput, this->remoteinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-        this->sdinstPage->SetOnInput(std::bind(&sdInstPage::onInput, this->sdinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-        this->usbinstPage->SetOnInput(std::bind(&usbInstPage::onInput, this->usbinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-        this->hddinstPage->SetOnInput(std::bind(&hddInstPage::onInput, this->hddinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-        this->instpage->SetOnInput(std::bind(&instPage::onInput, this->instpage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-        this->optionspage->SetOnInput(std::bind(&optionsPage::onInput, this->optionspage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+        this->BindInput(this->mainPage, std::bind(&MainPage::onInput, this->mainPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+        this->BindInput(this->netinstPage, std::bind(&netInstPage::onInput, this->netinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+        this->BindInput(this->remoteinstPage, std::bind(&remoteInstPage::onInput, this->remoteinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+        this->BindInput(this->sdinstPage, std::bind(&sdInstPage::onInput, this->sdinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+        this->BindInput(this->usbinstPage, std::bind(&usbInstPage::onInput, this->usbinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+        this->BindInput(this->hddinstPage, std::bind(&hddInstPage::onInput, this->hddinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+        this->BindInput(this->instpage, std::bind(&instPage::onInput, this->instpage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+        this->BindInput(this->optionspage, std::bind(&optionsPage::onInput, this->optionspage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
         this->LoadLayout(this->mainPage);
 
         this->AddThread([this]() {
+            const auto touch = this->GetTouchState();
+            if (!this->inputGate.Allow(this->GetButtonsDown() | this->GetButtonsHeld(), touch.count > 0, InputTimeMs())) this->rover = true;
             this->RefreshInputDevice();
         });
 
@@ -327,7 +372,7 @@ namespace inst::ui {
                 if (!complete_notified) {
                     std::string audioPath = "romfs:/audio/success.wav";
                     if (!inst::config::soundEnabled) audioPath = "";
-                    if (std::filesystem::exists(inst::config::appDir + "/success.wav")) {
+                    else if (std::filesystem::exists(inst::config::appDir + "/success.wav")) {
                         audioPath = inst::config::appDir + "/success.wav";
                     }
                     std::thread audioThread(inst::util::playAudio, audioPath);

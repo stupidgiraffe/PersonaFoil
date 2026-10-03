@@ -31,7 +31,7 @@ namespace inst::ui {
             return inst::config::BuildRemoteUrl(remote) == inst::config::remoteUrl &&
                    remote.username == inst::config::remoteUser &&
                    remote.password == inst::config::remotePass &&
-                   remote.legacyMode == inst::config::remoteLegacyMode;
+                   remote.compatibility == inst::config::remoteCompatibility;
         }
 
         std::string TrimString(const std::string& value)
@@ -323,6 +323,9 @@ namespace inst::ui {
         this->Add(this->infoRect);
         this->Add(this->botRect);
         this->Add(this->sideNavRect);
+        this->identityAccent = Rectangle::New(301, 142, 6, 492, COLOR("#71C4FFFF"));
+        this->identityAccent->SetVisible(false);
+        this->Add(this->identityAccent);
         this->Add(this->titleImage);
         this->Add(this->appVersionText);
         this->Add(this->sysBarBack);
@@ -490,6 +493,9 @@ namespace inst::ui {
 
     void optionsPage::setSettingsMenuText() {
         this->menu->ClearItems();
+        this->pageInfoText->SetText("options.title"_lang);
+        this->pageInfoText->SetFontSize(30);
+        this->identityAccent->SetVisible(this->selectedSection == 1);
 
         auto addItem = [this](const std::string &label, bool toggle, bool value) {
             auto item = pu::ui::elm::MenuItem::New(label);
@@ -513,17 +519,21 @@ namespace inst::ui {
         if (this->selectedSection == 1) {
             const auto personas = inst::identity::ListPersonas();
             const std::string activeId = inst::identity::GetActivePersonaId();
-            addItem("Current identity: " + inst::identity::GetActiveIdentityName(), false, false);
-            addItem("UID fingerprint: " + inst::identity::FormatUidFingerprint(inst::identity::GetActiveUid()), false, false);
-            addItem(activeId == inst::identity::kNativeIdentityId ? "Native Switch  (Active)" : "Use Native Switch", false, false);
+            const std::string uid = inst::identity::GetActiveUid();
+            this->pageInfoText->SetFontSize(26);
+            this->pageInfoText->SetText("CURRENT IDENTITY    " + inst::util::shortenString(inst::identity::GetActiveIdentityName(), 24, false) + "    " + inst::identity::FormatUidFingerprint(uid));
+            static const char* accents[] = {"#71C4FFFF", "#FFA5D8FF", "#ADDF86FF", "#FFD078FF", "#B8A8FFFF", "#72DFCDFF"};
+            const auto marker = std::strtoul(uid.substr(0, 2).c_str(), nullptr, 16) % 6;
+            this->identityAccent->SetColor(COLOR(accents[marker]));
+            addItem(activeId == inst::identity::kNativeIdentityId ? "NATIVE SWITCH    [ACTIVE]" : "NATIVE SWITCH    Activate fallback", false, false);
             for (const auto& persona : personas) {
-                std::string label = persona.name;
+                std::string label = inst::util::shortenString(persona.name, 24, false);
                 if (persona.id == activeId)
-                    label += "  (Active)";
+                    label += "  [ACTIVE]";
                 label += "  " + inst::identity::FormatUidFingerprint(inst::identity::ComputeUidFromIdentityBytes(persona.seed));
                 addItem(label, false, false);
             }
-            addItem("New Identity", false, false);
+            addItem("+ New Persona", false, false);
             addItem("Export Diagnostic Report", false, false);
             addItem("Diagnostics (" + std::to_string(personas.size()) + " personas)", false, false);
             return;
@@ -539,12 +549,13 @@ namespace inst::ui {
             const std::string activeLabel = inst::util::shortenString(ActiveRemoteLabel(remotes), 38, false);
             addItem("Remotes: " + activeLabel + " (" + std::to_string(remotes.size()) + " saved)", false, false);
             addItem("Add new Remote", false, false);
+            addItem("Discover Shops", false, false);
             const std::string uaMode = inst::config::remoteLegacyMode ? "tinfoil" : inst::config::httpUserAgentMode;
             addItem("User-Agent profile: " + GetUserAgentProfileLabel(uaMode), false, false);
             auto items = this->menu->GetItems();
             if (inst::config::remoteLegacyMode && items.size() > 3 && items[3] != nullptr)
                 items[3]->SetColor(COLOR("#FFFFFF88"));
-            addItem("Tinfoil Mode (legacy Remote compatibility)", true, inst::config::remoteLegacyMode);
+            addItem("Compatibility (advanced): " + std::string(inst::remote::CompatibilityName(inst::config::remoteCompatibility)), false, false);
             addItem("options.menu_items.remote_hide_installed"_lang, true, inst::config::remoteHideInstalled);
             addItem("options.menu_items.remote_hide_installed_section"_lang, true, inst::config::remoteHideInstalledSection);
             addItem("Hide cheats not matching local build / installed title", true, inst::config::remoteHideIncompatibleCheats);
@@ -564,6 +575,7 @@ namespace inst::ui {
 
     void optionsPage::refreshOptions(bool resetSelection) {
         this->remoteListVisible = false;
+        this->discoveryVisible = false;
         this->setSectionNavText();
         this->setSettingsMenuText();
         if (resetSelection) this->menu->SetSelectedIndex(0);
@@ -585,7 +597,7 @@ namespace inst::ui {
     void optionsPage::createPersona() {
         const std::string defaultName = inst::identity::NextDefaultPersonaName();
         const int confirm = mainApp->CreateShowDialog(
-            "New Identity",
+            "New Persona",
             "Create and activate a persistent local identity named " + defaultName + "?\n\nIts random seed stays on this SD card.",
             {"Create & Activate", "common.cancel"_lang}, false);
         if (confirm != 0) return;
@@ -616,7 +628,7 @@ namespace inst::ui {
         const int action = mainApp->CreateShowDialog(
             persona.name,
             "UID fingerprint: " + fingerprint + (active ? "\nCurrent identity" : ""),
-            {"Activate", "Rename", "Delete", "View fingerprint", "common.cancel"_lang},
+            {"Activate", "Rename", "Delete", "Details", "common.cancel"_lang},
             false);
 
         std::string error;
@@ -642,6 +654,71 @@ namespace inst::ui {
         this->refreshOptions();
     }
 
+    void optionsPage::openDiscovery() {
+        this->discoveryCatalog = inst::catalog::Load(inst::config::appDir + "/catalog-v1.json", "romfs:/catalog-v1.json");
+        this->discoveryVisible = true;
+        this->remoteListVisible = false;
+        this->tabsFocused = false;
+        this->identityAccent->SetVisible(false);
+        this->pageInfoText->SetText("Discover Shops — " + this->discoveryCatalog.origin);
+        this->butText->SetText(" Inspect / Add / Test     Back");
+        this->bottomHintSegments = BuildBottomHintSegments(" Inspect / Add / Test     Back", 10, 20);
+        this->refreshDiscovery();
+        this->menu->SetSelectedIndex(0);
+        mainApp->SuppressInput();
+    }
+
+    void optionsPage::refreshDiscovery() {
+        const auto remotes = inst::config::LoadRemotes();
+        this->menu->ClearItems();
+        auto refresh = MenuItem::New("Refresh catalog (keep last-good copy)");
+        refresh->SetColor(COLOR("#FFFFFFFF")); this->menu->AddItem(refresh);
+        for (const auto& entry : this->discoveryCatalog.entries) {
+            const bool saved = std::any_of(remotes.begin(), remotes.end(), [&](const auto& remote) {
+                return inst::http::CanonicalUrl(inst::config::BuildRemoteUrl(remote)) == inst::http::CanonicalUrl(entry.url());
+            });
+            auto row = MenuItem::New((saved ? "[SAVED] " : "") + entry.title + "    " + entry.health);
+            row->SetColor(saved ? COLOR("#ADDF86FF") : COLOR("#FFFFFFFF"));
+            this->menu->AddItem(row);
+        }
+    }
+
+    void optionsPage::inspectCatalogEntry(const inst::catalog::Entry& entry) {
+        const auto remotes = inst::config::LoadRemotes();
+        const auto saved = std::find_if(remotes.begin(), remotes.end(), [&](const auto& remote) {
+            return inst::http::CanonicalUrl(inst::config::BuildRemoteUrl(remote)) == inst::http::CanonicalUrl(entry.url());
+        });
+        const bool exists = saved != remotes.end();
+        std::string details = entry.url() + "\nHealth: " + entry.health + " (HTTP " + std::to_string(entry.httpStatus) + ")";
+        details += "\nSource: " + entry.provenance + "\nChecked: " + entry.checkedAt + "\nAuthentication: " + entry.authentication;
+        details += "\nCatalog: " + this->discoveryCatalog.origin + "\nGenerated: " + this->discoveryCatalog.generatedAt;
+        const int action = mainApp->CreateShowDialog(entry.title, details,
+            {exists ? "Saved — edit" : "Add Remote", "Test connection", "common.cancel"_lang}, true);
+        if (action == 0 && exists) { this->openRemoteForm(*saved, IsActiveRemote(*saved), true); return; }
+        inst::config::RemoteProfile profile;
+        profile.protocol = entry.protocol; profile.host = entry.host; profile.path = entry.path;
+        profile.port = entry.port; profile.title = entry.title; profile.compatibility = entry.compatibility;
+        if (action == 0) {
+            if (entry.authentication == "required") {
+                profile.username = inst::util::softwareKeyboard("Username for " + entry.title, "", 100);
+                if (profile.username.empty()) return;
+                profile.password = inst::util::softwareKeyboard("Password for " + entry.title, "", 100);
+                if (profile.password.empty()) return;
+            }
+            std::string error;
+            if (!inst::config::SaveRemote(profile, &error)) mainApp->CreateShowDialog("Could not add Remote", error, {"common.ok"_lang}, true);
+            this->refreshDiscovery();
+        } else if (action == 1) {
+            if (exists) profile = *saved;
+            this->pageInfoText->SetText("Testing source..."); mainApp->CallForRender();
+            const auto probe = remoteInstStuff::ProbeRemote(inst::config::BuildRemoteUrl(profile), profile.username, profile.password, profile.compatibility);
+            mainApp->CreateShowDialog(probe.error.empty() ? "Source is compatible" : "Connection test failed",
+                probe.error.empty() ? std::string("Detected: ") + (probe.capabilities.customIndex() ? "Custom index" : "Modern sections") : probe.error,
+                {"common.ok"_lang}, true);
+            this->pageInfoText->SetText("Discover Shops — " + this->discoveryCatalog.origin);
+        }
+    }
+
     void optionsPage::openRemoteList(int selectedIndex) {
         this->remoteListProfiles = inst::config::LoadRemotes();
         this->remoteListVisible = true;
@@ -661,7 +738,7 @@ namespace inst::ui {
                 label += "* ";
             label += inst::util::shortenString(remote.title, 52, false);
             if (IsActiveRemote(remote))
-                label += "  (Active)";
+                label += "  [ACTIVE]";
             auto item = pu::ui::elm::MenuItem::New(label);
             item->SetColor(COLOR("#FFFFFFFF"));
             this->menu->AddItem(item);
@@ -726,7 +803,8 @@ namespace inst::ui {
         this->butText->SetVisible(true);
         this->menu->SetVisible(true);
 
-        if (this->remoteFormReturnToList)
+        if (this->discoveryVisible) this->openDiscovery();
+        else if (this->remoteFormReturnToList)
             this->openRemoteList(this->remoteFormReturnIndex);
         else {
             this->refreshOptions();
@@ -739,13 +817,13 @@ namespace inst::ui {
             return value.empty() ? emptyValue : inst::util::shortenString(value, 34, false);
         };
         const std::string protocol = this->remoteFormProfile.protocol == "https" ? "HTTPS" : "HTTP";
-        const std::string mode = this->remoteFormProfile.legacyMode ? "Legacy Mode (Tinfoil)" : "CyberFoil Mode";
+        const std::string mode = inst::remote::CompatibilityName(this->remoteFormProfile.compatibility);
         const std::string path = this->remoteFormProfile.path.empty() ? "/" : this->remoteFormProfile.path;
         const std::string password = this->remoteFormProfile.password.empty() ? "Not set" : "Set";
         const std::string favourite = this->remoteFormProfile.favourite ? "Yes" : "No";
         const std::vector<std::string> rows = {
             "Protocol                                      " + protocol,
-            "Mode                                          " + mode,
+            "Compatibility (advanced)                      " + mode,
             "Host                                          " + fieldValue(this->remoteFormProfile.host, "Required"),
             "Port                                          " + std::to_string(this->remoteFormProfile.port),
             "Path                                          " + fieldValue(path, "/"),
@@ -786,13 +864,12 @@ namespace inst::ui {
         if (field == 1) {
             this->remoteModeDropdownVisible = true;
             this->remoteProtocolDropdownMenu->ClearItems();
-            auto cyberFoil = MenuItem::New("CyberFoil Mode");
-            auto legacy = MenuItem::New("Legacy Mode (Tinfoil)");
-            cyberFoil->SetColor(COLOR("#FFFFFFFF"));
-            legacy->SetColor(COLOR("#FFFFFFFF"));
-            this->remoteProtocolDropdownMenu->AddItem(cyberFoil);
-            this->remoteProtocolDropdownMenu->AddItem(legacy);
-            this->remoteProtocolDropdownMenu->SetSelectedIndex(this->remoteFormProfile.legacyMode ? 1 : 0);
+            for (const char* label : {"Auto (recommended)", "Modern", "Tinfoil"}) {
+                auto item = MenuItem::New(label);
+                item->SetColor(COLOR("#FFFFFFFF"));
+                this->remoteProtocolDropdownMenu->AddItem(item);
+            }
+            this->remoteProtocolDropdownMenu->SetSelectedIndex(static_cast<int>(this->remoteFormProfile.compatibility));
             this->remoteProtocolDropdownPanel->SetY(192);
             this->remoteProtocolDropdownMenu->SetY(200);
             this->remoteProtocolDropdownPanel->SetVisible(true);
@@ -983,6 +1060,27 @@ namespace inst::ui {
             Down |= FindBottomHintButton(this->bottomHintSegments, bottomTapX);
         }
         inst::util::playNavigationClickIfNeeded(Down);
+        if (this->discoveryVisible && !this->remoteFormVisible) {
+            if (Down & HidNpadButton_B) {
+                this->refreshOptions();
+                this->butText->SetText(" Select/Change    / Section     Back");
+                this->bottomHintSegments = BuildBottomHintSegments(" Select/Change    / Section     Back", 10, 20);
+                return;
+            }
+            if (Down & HidNpadButton_A) {
+                const auto index = this->menu->GetSelectedIndex();
+                if (index == 0) {
+                    this->pageInfoText->SetText("Refreshing catalog..."); mainApp->CallForRender();
+                    std::string error;
+                    if (!inst::catalog::Refresh(inst::config::appDir + "/catalog-v1.json", this->discoveryCatalog, error))
+                        mainApp->CreateShowDialog("Catalog refresh failed", error + "\nThe last-good catalog is still available.", {"common.ok"_lang}, true);
+                    this->pageInfoText->SetText("Discover Shops — " + this->discoveryCatalog.origin);
+                    this->refreshDiscovery();
+                } else if (index > 0 && index <= static_cast<int>(this->discoveryCatalog.entries.size()))
+                    this->inspectCatalogEntry(this->discoveryCatalog.entries[index - 1]);
+            }
+            return;
+        }
         if (this->remoteFormVisible) {
             if (this->remoteProtocolDropdownVisible || this->remoteModeDropdownVisible) {
                 if (Down & HidNpadButton_B) {
@@ -994,7 +1092,8 @@ namespace inst::ui {
                 }
                 if (Down & HidNpadButton_A) {
                     if (this->remoteModeDropdownVisible) {
-                        this->remoteFormProfile.legacyMode = this->remoteProtocolDropdownMenu->GetSelectedIndex() == 1;
+                        this->remoteFormProfile.compatibility = static_cast<inst::remote::Compatibility>(this->remoteProtocolDropdownMenu->GetSelectedIndex());
+                        this->remoteFormProfile.legacyMode = this->remoteFormProfile.compatibility == inst::remote::Compatibility::Tinfoil;
                     } else {
                         const int previousDefaultPort = inst::config::DefaultPortForProtocol(this->remoteFormProfile.protocol);
                         this->remoteFormProfile.protocol = this->remoteProtocolDropdownMenu->GetSelectedIndex() == 1 ? "https" : "http";
@@ -1023,6 +1122,7 @@ namespace inst::ui {
                 return;
             }
             mainApp->LoadLayout(mainApp->mainPage);
+            return;
         }
         const bool leftPressed = (Down & (HidNpadButton_Left | HidNpadButton_StickLLeft)) != 0;
         const bool rightPressed = (Down & (HidNpadButton_Right | HidNpadButton_StickLRight)) != 0;
@@ -1128,37 +1228,33 @@ namespace inst::ui {
                 selectedIndex = kGeneralMap[selectedIndex];
             } else if (this->selectedSection == 1) {
                 const auto personas = inst::identity::ListPersonas();
-                if (selectedIndex == 0 || selectedIndex == 1) {
-                    this->showIdentityDiagnostics();
-                    return;
-                }
-                if (selectedIndex == 2) {
+                if (selectedIndex == 0) {
                     std::string error;
                     if (!inst::identity::ActivateNative(&error))
                         mainApp->CreateShowDialog("Could not activate Native Switch", error, {"common.ok"_lang}, true);
                     this->refreshOptions();
                     return;
                 }
-                const int personaIndex = selectedIndex - 3;
+                const int personaIndex = selectedIndex - 1;
                 if (personaIndex >= 0 && personaIndex < static_cast<int>(personas.size())) {
                     this->managePersona(personas[static_cast<std::size_t>(personaIndex)]);
                     return;
                 }
-                if (selectedIndex == static_cast<int>(personas.size()) + 3) {
+                if (selectedIndex == static_cast<int>(personas.size()) + 1) {
                     this->createPersona();
                     return;
                 }
-                if (selectedIndex == static_cast<int>(personas.size()) + 4) {
+                if (selectedIndex == static_cast<int>(personas.size()) + 2) {
                     this->exportDiagnosticReport();
                     return;
                 }
-                if (selectedIndex == static_cast<int>(personas.size()) + 5) {
+                if (selectedIndex == static_cast<int>(personas.size()) + 3) {
                     this->showIdentityDiagnostics();
                     return;
                 }
                 return;
             } else if (this->selectedSection == 2) {
-                static const int kRemoteMap[] = {20, 21, 25, 26, 12, 13, 27, 24, 19, 23, 22};
+                static const int kRemoteMap[] = {20, 21, 28, 25, 26, 12, 13, 27, 24, 19, 23, 22};
                 if ((selectedIndex < 0) || (selectedIndex >= static_cast<int>(sizeof(kRemoteMap) / sizeof(kRemoteMap[0])))) return;
                 selectedIndex = kRemoteMap[selectedIndex];
             } else {
@@ -1258,13 +1354,13 @@ namespace inst::ui {
                         mainApp->usbinstPage = usbInstPage::New();
                         mainApp->remoteinstPage = remoteInstPage::New();
                         mainApp->optionspage = optionsPage::New();
-                        mainApp->mainPage->SetOnInput(std::bind(&MainPage::onInput, mainApp->mainPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-                        mainApp->netinstPage->SetOnInput(std::bind(&netInstPage::onInput, mainApp->netinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-                        mainApp->remoteinstPage->SetOnInput(std::bind(&remoteInstPage::onInput, mainApp->remoteinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-                        mainApp->sdinstPage->SetOnInput(std::bind(&sdInstPage::onInput, mainApp->sdinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-                        mainApp->usbinstPage->SetOnInput(std::bind(&usbInstPage::onInput, mainApp->usbinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-                        mainApp->instpage->SetOnInput(std::bind(&instPage::onInput, mainApp->instpage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-                        mainApp->optionspage->SetOnInput(std::bind(&optionsPage::onInput, mainApp->optionspage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+                        mainApp->BindInput(mainApp->mainPage, std::bind(&MainPage::onInput, mainApp->mainPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+                        mainApp->BindInput(mainApp->netinstPage, std::bind(&netInstPage::onInput, mainApp->netinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+                        mainApp->BindInput(mainApp->remoteinstPage, std::bind(&remoteInstPage::onInput, mainApp->remoteinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+                        mainApp->BindInput(mainApp->sdinstPage, std::bind(&sdInstPage::onInput, mainApp->sdinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+                        mainApp->BindInput(mainApp->usbinstPage, std::bind(&usbInstPage::onInput, mainApp->usbinstPage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+                        mainApp->BindInput(mainApp->instpage, std::bind(&instPage::onInput, mainApp->instpage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+                        mainApp->BindInput(mainApp->optionspage, std::bind(&optionsPage::onInput, mainApp->optionspage, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
                         mainApp->LoadLayout(mainApp->optionspage);
                     }
                     break;
@@ -1296,6 +1392,7 @@ namespace inst::ui {
                     this->openRemoteList();
                     break;
                 }
+                case 28: { this->openDiscovery(); break; }
                 case 21: {
                     inst::config::RemoteProfile newRemote;
                     this->openRemoteForm(newRemote, true, false);
@@ -1303,7 +1400,7 @@ namespace inst::ui {
                 }
                 case 25: {
                     if (inst::config::remoteLegacyMode) {
-                        inst::ui::mainApp->CreateShowDialog("User-Agent profile", "Locked to Tinfoil while Tinfoil Mode is enabled.", {"common.ok"_lang}, true);
+                        inst::ui::mainApp->CreateShowDialog("User-Agent profile", "The selected advanced compatibility override uses the Tinfoil request profile.", {"common.ok"_lang}, true);
                         break;
                     }
 
@@ -1360,18 +1457,26 @@ namespace inst::ui {
                     inst::config::setConfig();
                     this->refreshOptions();
                     break;
-                case 26:
-                    inst::config::remoteLegacyMode = !inst::config::remoteLegacyMode;
-                    if (inst::config::remoteLegacyMode) {
-                        inst::config::httpUserAgentMode = "tinfoil";
-                        inst::config::httpUserAgent.clear();
-                    } else {
-                        inst::config::httpUserAgentMode = "default";
-                        inst::config::httpUserAgent.clear();
+                case 26: {
+                    const int choice = mainApp->CreateShowDialog("Remote compatibility", "Auto detects the source format. Manual overrides are for unusual servers.",
+                        {"Auto (recommended)", "Modern", "Tinfoil", "common.cancel"_lang}, true);
+                    if (choice < 0 || choice > 2) break;
+                    inst::config::remoteCompatibility = static_cast<inst::remote::Compatibility>(choice);
+                    inst::config::remoteLegacyMode = choice == 2;
+                    inst::remote::SetActiveCapabilities({});
+                    for (auto remote : inst::config::LoadRemotes()) {
+                        if (inst::http::CanonicalUrl(inst::config::BuildRemoteUrl(remote)) == inst::http::CanonicalUrl(inst::config::remoteUrl) &&
+                            remote.username == inst::config::remoteUser && remote.password == inst::config::remotePass) {
+                            remote.compatibility = inst::config::remoteCompatibility;
+                            std::string error;
+                            if (!inst::config::SaveRemote(remote, &error)) mainApp->CreateShowDialog("Could not save compatibility", error, {"common.ok"_lang}, true);
+                            break;
+                        }
                     }
                     inst::config::setConfig();
                     this->refreshOptions();
                     break;
+                }
                 case 13:
                     inst::config::remoteHideInstalledSection = !inst::config::remoteHideInstalledSection;
                     inst::config::setConfig();
@@ -1510,6 +1615,10 @@ namespace inst::ui {
                     const auto check = inst::update::CheckForUpdate(inst::config::appVersion);
                     if (check.status == inst::update::CheckStatus::Error) {
                         mainApp->CreateShowDialog("Update check failed", check.error.empty() ? "Could not check PersonaFoil releases." : check.error, {"common.ok"_lang}, true);
+                        break;
+                    }
+                    if (check.status == inst::update::CheckStatus::NoRelease) {
+                        mainApp->CreateShowDialog("No published release", "There is no stable PersonaFoil release available yet.", {"common.ok"_lang}, false);
                         break;
                     }
                     if (check.status == inst::update::CheckStatus::UpToDate) {
