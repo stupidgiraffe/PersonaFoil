@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - "v*"
+    branches:
+      - master
   workflow_dispatch:
     inputs:
       tag:
@@ -16,6 +18,7 @@ permissions:
 
 jobs:
   release:
+    if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'release: publish ')
     runs-on: ubuntu-latest
     container:
       image: devkitpro/devkita64:latest
@@ -26,6 +29,23 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+
+      - name: Resolve release tag
+        id: release_meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            tag="${{ inputs.tag }}"
+          elif [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            tag="${GITHUB_REF_NAME}"
+          else
+            version="$(awk -F':=' '/^APP_VERSION[[:space:]]*:/{gsub(/[[:space:]]/, "", $2); print $2}' Makefile)"
+            test -n "$version"
+            tag="v$version"
+          fi
+          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: Install Switch port libraries
         run: dkp-pacman -S --noconfirm --needed switch-ntfs-3g switch-lwext4
@@ -55,7 +75,7 @@ jobs:
       - name: Publish tagged release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          tag_name: ${{ steps.release_meta.outputs.tag }}
           target_commitish: ${{ github.sha }}
           files: |
             personafoil.nro
