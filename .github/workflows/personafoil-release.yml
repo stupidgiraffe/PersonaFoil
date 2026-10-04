@@ -6,6 +6,8 @@ on:
       - "v*"
     branches:
       - master
+    paths:
+      - ".github/RELEASE_TRIGGER"
   workflow_dispatch:
     inputs:
       tag:
@@ -18,7 +20,6 @@ permissions:
 
 jobs:
   release:
-    if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'release: publish ')
     runs-on: ubuntu-latest
     container:
       image: devkitpro/devkita64:latest
